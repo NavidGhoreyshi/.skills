@@ -43,6 +43,52 @@ At the very start, `audit-loop` asks the user to choose a mode:
 
 Discovery and proof are identical in both modes; only *who decides what gets fixed* changes. Interactive mode never narrows the audit itself.
 
+#### Interactive mode, in practice
+
+```text
+> How should I handle the defects this audit finds?
+> 1. Auto-fix — audit everything, then fix all confirmed defects automatically (default).
+> 2. Interactive — audit everything, then walk me through each defect one at a time
+>    so I can decide what to do.
+→ 2
+
+Full audit complete: 4 confirmed defects, 2 missing-coverage items. Code untouched.
+
+| ID   | Severity    | Location                          | Issue                                        | Status          |
+|------|-------------|-----------------------------------|----------------------------------------------|-----------------|
+| F-01 | 🔴 Critical | backend/apps/business/views.py    | Public subresources skip the verified gate   | ⏳ Pending decision |
+| F-02 | 🟠 High     | frontend/app/user/settings/page.tsx | Notification prefs are localStorage-only    | ⏳ Pending decision |
+| ...  |             |                                   |                                              |                 |
+
+── Finding F-01 (1/4) ───────────────────────────────────────────────
+
+| Field          | Value                                                      |
+|----------------|------------------------------------------------------------|
+| ID             | F-01                                                       |
+| Severity       | 🔴 Critical                                                 |
+| Location       | backend/apps/business/views.py                            |
+| Description    | Public detail subresources ignore the VERIFIED gate.      |
+| Impact         | Anonymous callers can read unverified businesses.         |
+| Evidence       | confirmed bug — public-gate probe, tests_public_gate.py   |
+| Recommendation | Route reads through a shared verification-aware helper.   |
+
+Proposed fix: extract a public-access helper in apps/business/public_access.py,
+apply it to the subresource reads, add pending/rejected/verified regressions.
+
+How would you like to solve this?
+1. Your proposed solution — implement as described.
+2. Different approach — describe it and I'll implement that.
+3. Skip this issue.
+4. Already resolved.
+→ 1
+✅ Fixed and verified: 4 new tests pass, affected matrix cells re-run.
+
+── Finding F-02 (2/4) ───────────────────────────────────────────────
+…
+```
+
+Each finding gets the same treatment — introduced, a fix proposed, a decision, and (if approved) a verified fix — until every row in the summary table has a terminal status. The final report includes the full ledger: what was fixed, skipped, deferred, and left unproven.
+
 ### tree-mapper / section-auditor
 
 These are the child skills `audit-loop` orchestrates, and both work standalone:
