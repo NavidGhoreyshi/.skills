@@ -9,7 +9,6 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 | `audit-loop` | Run a complete project-wide frontend/backend wiring audit in one pass. Exhaustively inspect every user-facing route, SPA view, control, data-bearing element, state transition, API contract, permission boundary, persistence path, cache, privacy rule, failure state, and browser flow, then build a finding ledger before repairing. |
 | `tree-mapper` | Build or refresh `docs/ui-tree.md` — the frontend/backend integration tree and per-unit wiring inventory that audits depend on. |
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
-| `handoff` | Compact the current conversation into a handoff document so a fresh agent can pick the work up in a new session. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
 
 ## Install
@@ -97,10 +96,6 @@ These are the child skills `audit-loop` orchestrates, and both work standalone:
 
 - `tree-mapper` — inventory a project's routes, views, components, API wiring, permissions, and tests before any audit work.
 - `section-auditor` — audit a single page/view with its backend integration, classify findings, and (in auto-fix mode) repair them with regression coverage.
-
-### handoff
-
-Compacts the current conversation into a handoff document for a fresh agent in a new session. Saved to the OS temp directory (not the workspace). The document includes a "suggested skills" section naming what the next agent should invoke, references existing artifacts (specs, plans, ADRs, issues, commits, diffs) by path instead of duplicating them, and redacts secrets. If arguments are passed, they describe what the next session will focus on and the document is tailored to that.
 
 ### context-pack
 
