@@ -1,4 +1,4 @@
-# .skills — Project Audit Skills
+# .skills — Agent Skills for Full-Stack Audits
 
 A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform.
 
@@ -13,10 +13,12 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 
 ## Install
 
-Install all three skills into the current project (works with any agent that supports `SKILL.md`):
+Requires [Node.js](https://nodejs.org) — the `skills` CLI is fetched on demand via `npx`.
+
+Install every skill into the current project (works with any agent that supports `SKILL.md`):
 
 ```bash
-npx skills add NavidGhoreyshi/.skills --skill '*' --yes
+npx skills add NavidGhoreyshi/.skills --all
 ```
 
 Or install them individually:
@@ -25,9 +27,10 @@ Or install them individually:
 npx skills add NavidGhoreyshi/.skills --skill audit-loop --yes
 npx skills add NavidGhoreyshi/.skills --skill tree-mapper --yes
 npx skills add NavidGhoreyshi/.skills --skill section-auditor --yes
+npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
 ```
 
-See what's available without installing:
+See what's available without installing anything:
 
 ```bash
 npx skills add NavidGhoreyshi/.skills --list
