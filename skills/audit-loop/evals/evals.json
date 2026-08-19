@@ -1,0 +1,41 @@
+{
+  "skill_name": "audit-loop",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Audit the next user-facing page in this application. The UI tree and audit progress documents already exist. Inspect the page and its backend integration, fix all valid findings, add missing focused tests, run the relevant test suite, build, and Playwright Chromium checks, update progress, commit the iteration, then report what changed and ask whether to continue.",
+      "expected_output": "The orchestrator confirms the mode with the user (or defaults to auto-fix), reads both documents, selects one work unit, delegates to Section Auditor, blocks the commit if validation fails, otherwise updates progress and creates one scoped commit before pausing.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Start the audit loop in this project. There is no UI tree document and no audit progress document yet. Map the frontend and backend integration first, create the required documents, then audit only the first meaningful page or SPA view and stop after one validated iteration.",
+      "expected_output": "The orchestrator asks the mode question first, delegates tree creation to Tree Mapper, creates or initializes progress state, delegates exactly one work unit to Section Auditor, and does not continue automatically.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Run one audit-loop iteration, but the repository already contains unrelated uncommitted changes. Do not overwrite, stage, or commit them. Explain what must happen before the loop can safely proceed.",
+      "expected_output": "The orchestrator stops at the clean-tree precondition and does not delegate fixes or create a commit.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Perform a complete project-wide UI/backend wiring audit in one run, and fix everything you find automatically without asking me about individual findings. Do not stop after the first page or first batch of findings. Build a global inventory and state matrix for every route, control, data-bearing element, role, empty/error/loading state, privacy setting, cache path, pagination path, relation, lifecycle transition, and browser flow; trace every read and write end to end; record confirmed, intentional, missing-coverage, and unproven results; then repair and validate all confirmed in-scope findings.",
+      "expected_output": "The orchestrator asks the mode question first, the user selects auto-fix, and discovery completes across all mapped units before repair. It reports a finding ledger with evidence and proof status, runs relevant tests and project-local production Chromium/CDP harnesses, distinguishes implementation failures from environment gaps, updates both audit documents, and does not ask to continue until the full-sweep completion criteria are met.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Run a complete project-wide audit, but do not change any code during the audit. After discovery is finished, walk me through every confirmed defect one at a time: explain each issue, show me a table with its severity, location, description, impact, evidence, and recommendation, offer your proposed fix, and let me decide what to do before you move to the next one.",
+      "expected_output": "The orchestrator asks the mode question first, the user selects interactive mode. Discovery runs across all mapped units with code untouched. Then the orchestrator presents a severity-grouped summary table of the full ledger, then walks through each finding one at a time with a per-issue detail table and a four-option decision prompt (proposed solution / different approach / skip / already resolved), fixes and verifies only what the user approves, records a terminal status for every finding, and reports the final ledger.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Audit the whole project and fix everything automatically. I do not want to review each finding.",
+      "expected_output": "The orchestrator confirms the mode, the user selects auto-fix, and the run proceeds with discovery then autonomous repair, verification, and a final complete report without per-finding prompts.",
+      "files": []
+    }
+  ]
+}
