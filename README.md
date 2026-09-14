@@ -6,7 +6,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 
 | Skill | Purpose |
 |---|---|
-| `audit-loop` | Run a complete project-wide frontend/backend wiring audit in one pass. Exhaustively inspect every user-facing route, SPA view, control, data-bearing element, state transition, API contract, permission boundary, persistence path, cache, privacy rule, failure state, and browser flow, then build a finding ledger before repairing. |
+| `audit-loop` | Run a complete project-wide audit in one pass. Four audit types: API wiring (frontend/backend contracts, permissions, persistence, state transitions, privacy, browser proof), code quality (maintainability debt, measured, behavior-preserving), security (authentication, authorization, tenancy isolation, input handling, secrets, data exposure), and a user-guided missed-features assessment. Builds a finding ledger before repairing. |
 | `tree-mapper` | Build or refresh `docs/ui-tree.md` — the frontend/backend integration tree and per-unit wiring inventory that audits depend on. |
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
@@ -40,21 +40,36 @@ npx skills add NavidGhoreyshi/.skills --list
 
 ### audit-loop
 
-At the very start, `audit-loop` asks the user to choose a mode:
+At the very start, `audit-loop` asks two setup questions.
 
-- **Auto-fix** (default) — audit the whole project, then autonomously fix every confirmed defect, add regression coverage, verify the repairs, and report the complete ledger at the end.
-- **Interactive** — audit the whole project exactly the same way, then present the findings in a severity-grouped summary table and walk through each defect one at a time: explain the issue, offer a recommended solution, and let the user decide what to do with it (implement the proposal / describe a different approach / skip / mark already resolved).
+**Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase):
 
-Discovery and proof are identical in both modes; only *who decides what gets fixed* changes. Interactive mode never narrows the audit itself.
+- **API wiring audit** (recommended) — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
+- **Security audit** — probe every trust boundary: authentication, authorization and tenancy isolation, input handling, secret management, data exposure, abuse resistance, and configuration. Each finding needs a reproducible non-destructive probe; a negative result needs the recorded attempt too.
+- **Code quality audit** — measure maintainability debt (duplication, dead code, complexity, unsafe type escapes, swallowed errors, N+1 access, test quality) on a recorded baseline, then reduce it without changing observable behavior.
+- **Missed-features assessment** — walk pages and components one by one, propose only interactions the product's existing data, routes, and permissions already support, and let you classify each as needed / intentionally left out / defer / not applicable.
 
-#### Interactive mode, in practice
+**Question 2 — fix mode**:
+
+- **Manual fix mode** (recommended) — audit the whole project, then present the findings and ask before modifying application code.
+- **Automatic fix mode** — audit the whole project, then autonomously fix every confirmed in-scope defect, add regression coverage, verify the repairs, and report the complete ledger at the end.
+
+Discovery and proof are identical in both fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
+
+#### Manual fix mode, in practice
 
 ```text
-> How should I handle the defects this audit finds?
-> 1. Auto-fix — audit everything, then fix all confirmed defects automatically (default).
-> 2. Interactive — audit everything, then walk me through each defect one at a time
->    so I can decide what to do.
-→ 2
+> What kind of audit should this run perform?
+> 1. API wiring audit (Recommended)
+> 2. Code quality audit
+> 3. Security audit
+> 4. Missed-features assessment
+→ 1
+
+> How should confirmed fixes be handled?
+> 1. Manual fix mode (Recommended) — report findings and proposed changes first.
+> 2. Automatic fix mode — repair confirmed in-scope defects after discovery.
+→ 1
 
 Full audit complete: 4 confirmed defects, 2 missing-coverage items. Code untouched.
 
@@ -98,7 +113,7 @@ Each finding gets the same treatment — introduced, a fix proposed, a decision,
 These are the child skills `audit-loop` orchestrates, and both work standalone:
 
 - `tree-mapper` — inventory a project's routes, views, components, API wiring, permissions, and tests before any audit work.
-- `section-auditor` — audit a single page/view with its backend integration, classify findings, and (in auto-fix mode) repair them with regression coverage.
+- `section-auditor` — audit a single page/view with its backend integration, classify findings, and (in automatic fix mode) repair them with regression coverage.
 
 ### context-pack
 
