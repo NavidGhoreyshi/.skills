@@ -1,4 +1,4 @@
-# .skills — Agent Skills for Full-Stack Audits
+# .skills — Agent Skills for Agentic Workflows
 
 A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform.
 
@@ -10,6 +10,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 | `tree-mapper` | Build or refresh `docs/ui-tree.md` — the frontend/backend integration tree and per-unit wiring inventory that audits depend on. |
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
+| `deep-research` | Research anything on the internet with platform breadth (agent-reach) and extraction depth (scrapling, patchright-enhanced fallback). |
 
 ## Install
 
@@ -28,6 +29,7 @@ npx skills add NavidGhoreyshi/.skills --skill audit-loop --yes
 npx skills add NavidGhoreyshi/.skills --skill tree-mapper --yes
 npx skills add NavidGhoreyshi/.skills --skill section-auditor --yes
 npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
+npx skills add NavidGhoreyshi/.skills --skill deep-research --yes
 ```
 
 See what's available without installing anything:
@@ -123,6 +125,11 @@ Prepares context for another LLM — nothing else. Given a prompt, the skill sco
 - Media/binary files are referenced by path only (manifest + XML) — their contents are never exported.
 - Files split across `context_01.txt`, `context_02.txt`, … when output approaches the model limit; a source file is never split across parts.
 - The skill reports only statistics at the end; it never answers the original request.
+
+### deep-research
+
+Research with breadth then depth: `agent-reach` across web search, social, video, GitHub, RSS; `scrapling` to extract blocked or JS-heavy pages (`get` → `fetch` → `stealthy-fetch`); `patchright-enhanced` only when stealth browsing or login interaction is unavoidable. Primary sources only, every claim cited.
+
 
 ## How it works
 
