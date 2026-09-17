@@ -5,7 +5,7 @@ description: Research anything on the internet with platform breadth and extract
 
 # Deep Research
 
-Three tools, in order. Stop at the first one that yields content.
+Run all three lanes on every task, then compare outputs and keep the best evidence per claim. NEVER stop at the first lane that yields content.
 
 ## 0. Setup (once per machine, skip if present)
 
@@ -33,11 +33,13 @@ opencli xiaohongshu search "<q>" -f yaml                    # desktop, existing 
 ```
 
 Never log in as the user, never read/inject browser cookies yourself.
+Query every platform relevant to the question, not just one. Parallelize multi-platform sweeps. Log which backend you used and what each platform returned or missed.
 
 ## 2. Depth — scrapling (extract any URL)
 
 Escalate `get` → `fetch` → `stealthy-fetch`. ALWAYS pass `--ai-targeted`,
 prefer `.md` output to /tmp, narrow with `-s "<css>"`, delete temp files after reading.
+Run this lane even when breadth returned snippets — snippets are leads, not evidence. Extract the top candidate URLs. Log which level (`get` / `fetch` / `stealthy-fetch`) succeeded per URL.
 
 ```bash
 scrapling extract get "<URL>" /tmp/x.md --ai-targeted -s "article"
@@ -45,10 +47,9 @@ scrapling extract fetch "<URL>" /tmp/x.md --ai-targeted --network-idle --wait-se
 scrapling extract stealthy-fetch "<URL>" /tmp/x.md --ai-targeted --solve-cloudflare
 ```
 
-## 3. Last resort — patchright-enhanced (WAF / login / interaction)
+## 3. Verify — patchright-enhanced (interaction / JS-heavy / WAF check)
 
-Only when step 2 `stealthy-fetch` fails (Cloudflare/Kasada/DataDome, login wall,
-multi-step interaction). Stealth comes from patchright itself — no spoofing code.
+Always run on the top 1-2 URLs, even when scrapling succeeded: verify JS-heavy content, WAF-blocked pages, or multi-step interaction, and cross-check the scrapling extract against the live rendered page. Stealth comes from patchright itself — no spoofing code. Scope to 1-2 URLs, never a full re-sweep: breadth and depth do the sweeping, this lane verifies. If no URL exists to drive (pure API aggregation with nothing to render), log a one-line skip reason instead of running.
 
 ```bash
 cd ~/patchright-enhanced && npm run build && npm start   # opens clean Chrome, stays until closed
@@ -56,8 +57,12 @@ cd ~/patchright-enhanced && npm run build && npm start   # opens clean Chrome, s
 
 Point it at the URL via `START_PAGE_URL` in `.env`; drive via its session runner.
 
-## 4. Report
+## 4. Compare and select (mandatory)
+
+Compare the three lanes per key claim and keep the best evidence; never default to the first result. Prefer primary sources (docs, code, specs, the posts themselves) over write-ups; direct observation over quoted numbers; complete extracts over snippets; newer over older for changing data. On conflict prefer the lane showing the raw source and name the disagreement explicitly. Log per key claim which lane won and with which URL.
+
+## 5. Report
 
 Primary sources only (docs, code, specs — not write-ups of them). Every claim
-cited with its URL. Lead with the answer, then evidence. Scratch in `/tmp/`;
+cited with its URL. Lead with the answer, then evidence. State which backends and lanes ran and which lane won each key claim. Scratch in `/tmp/` and delete temp files after reading;
 persist a findings file only if the repo has a convention for one.
