@@ -1,6 +1,6 @@
 # .skills — Agent Skills for Agentic Workflows
 
-A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform.
+A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform. `roadmap-composition` goes one level up: it plans the work — composing the multi-session `ROADMAP.md` an [ompo](https://github.com/NavidGhoreyshi/ompo) orchestrator executes slice by slice.
 
 ## Skills
 
@@ -11,6 +11,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
 | `deep-research` | Research anything on the internet with platform breadth (agent-reach) and extraction depth (scrapling, patchright-enhanced fallback). |
+| `roadmap-composition` | Compose or revise an ompo `ROADMAP.md` — the multi-session plan an ompo orchestrator executes slice by slice. Splits work by file ownership and context budget, carries interfaces into slice bodies, and ships an audit script that flags overlapping, unbounded, or sweep-shaped slices. |
 
 ## Install
 
@@ -30,6 +31,7 @@ npx skills add NavidGhoreyshi/.skills --skill tree-mapper --yes
 npx skills add NavidGhoreyshi/.skills --skill section-auditor --yes
 npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
 npx skills add NavidGhoreyshi/.skills --skill deep-research --yes
+npx skills add NavidGhoreyshi/.skills --skill roadmap-composition --yes
 ```
 
 See what's available without installing anything:
@@ -129,6 +131,16 @@ Prepares context for another LLM — nothing else. Given a prompt, the skill sco
 ### deep-research
 
 Research with breadth then depth: `agent-reach` across web search, social, video, GitHub, RSS; `scrapling` to extract blocked or JS-heavy pages (`get` → `fetch` → `stealthy-fetch`); `patchright-enhanced` only when stealth browsing or login interaction is unavoidable. Primary sources only, every claim cited.
+
+### roadmap-composition
+
+Write the ROADMAP.md that `ompo run` executes — and restructure one that keeps wedging.
+
+- Builds a file → slice ownership map *before* writing bodies, so no file is touched by two slices without an ordering edge.
+- Sizes each slice to the worker's context budget (12k-char spec, 120k-token context) and turns sweeps into codemods with a committed manifest.
+- Carries the interfaces dependencies established into each slice body, instead of leaving workers to re-derive them from source.
+- Validates with `ompo lint`, a bundled composition audit (`scripts/audit-roadmap.mjs`: overlap, unbounded scope, sweep smell), and `ompo plan`.
+- Ships two calibration fixtures: a clean roadmap and one reproducing a real wedge, so the rules stay checkable.
 
 
 ## How it works
