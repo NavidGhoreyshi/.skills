@@ -44,7 +44,7 @@ npx skills add NavidGhoreyshi/.skills --list
 
 ### audit-loop
 
-At the very start, `audit-loop` asks two setup questions.
+At the very start, `audit-loop` asks two setup questions — three when a live user flow audit is selected.
 
 **Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase):
 
@@ -62,6 +62,8 @@ At the very start, `audit-loop` asks two setup questions.
 Discovery and proof are identical in both fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
 
 **Automatic fix mode is still chunked in a live user flow audit.** The run always stops at a chunk boundary for your go sign, because a whole-product live sweep will not fit in one coherent context window. Automatic means "decide and fix without asking per finding" — not "run unattended until the end".
+
+**Question 3 — live deployment authority** (live user flow audits only) asks whether the run may push and deploy to verify fixes, defaulting to *no — report only*. It is asked on every run and every chunk boundary, never cached: an unattended model deploying to production is a decision only the user can make, and the right answer changes as an environment gains real users.
 
 #### Live user flow audit, in practice
 

@@ -62,6 +62,24 @@ The fix-mode choice controls confirmed defects and approved feature additions on
 
 If the user explicitly says “just fix it,” “commit directly,” or equivalent, automatic fix mode may be selected without another confirmation question, but the audit-type question is still mandatory unless the user already specified it.
 
+### Question 3 — live deployment authority (Branch E only)
+
+When the selected audit type includes the live user flow audit, ask this. It is mandatory, and asked on **every run, every time** — never cached, never carried over from a previous chunk or session.
+
+> May this run push commits and deploy to the live environment in order to verify fixes?
+
+Options:
+
+- **No — report only (default)** — fixes are committed on the working branch and every one is recorded as `fixed, awaiting live verification`. Nothing reaches production. Correct whenever the environment has real users, real data, or any consequence for being wrong.
+- **Yes — push and deploy to verify** — the run may commit, push, deploy, and re-run the failing flow to reach `verified live`. Only for an environment the user controls and is willing to have changed by an autonomous loop.
+
+This is asked because whether an unattended model may deploy to production is not a property the skill can infer. A zero-user environment absorbs a nonstop tweaking agent; one with live customers does not, and a run that assumes the former on the latter is an incident. The answer belongs to the user, per run.
+
+- **No** — the run never pushes, deploys, restarts, migrates, or reconfigures the live host. Each defect is reported with the exact flow to re-run once the user deploys.
+- **Yes** — the project's normal deploy path only. Still no hand-editing a running container, no editing the live database to force a pass, and no restarts or reconfiguration outside a deploy. Report every deploy with its sha.
+
+The answer never carries forward: a later chunk, session, or run asks again, because the environment may have gained real users since. The state file records it as history, not as standing permission.
+
 **Chunking rule (mandatory for Branch E, both fix modes).** Automatic fix mode in a live user flow audit is *never* a single unattended run. The branch always works in chunks and always stops for the user's go sign between chunks — see Branch E. Automatic mode means "decide and fix without asking per finding", not "run unattended until the end". A single-session sweep of a whole live product is not achievable within a coherent context window, so the chunk boundary is a correctness requirement, not a courtesy.
 
 ## Project files
@@ -364,61 +382,63 @@ The branch is complete only when:
 
 # Branch E — Live user flow audit
 
-Use this branch when the user selects **Live user flow audit**. It is documented last but runs first when selected together with other branches, because it establishes the ground truth the static branches then explain.
+Use this branch when the user selects **Live user flow audit**. It is documented last but runs first, because it establishes the ground truth the other branches then explain.
 
 ## Goal
 
-Drive the application **as it is actually deployed** — on the real domain, against the real backend, real database, real cache, real queue — through every user-facing feature, end to end, and prove that each one works, that each thing connects to the thing it must connect to, and that steps happen in the right order.
+Drive the application **as deployed** — real domain, real backend, real database, real cache, real queue — through every user-facing feature end to end, and prove each one works, connects to what it must connect to, and happens in the right order.
 
-This branch is the ground truth for the product. It is not a smoke test, not a render check, and not a re-run of the project's local E2E suite against localhost. Its distinguishing property is that it has both halves of the system available at once:
+Not a smoke test, not a render check, not the local E2E suite against localhost. What makes it different is that both halves are available at once:
 
-- **Browser control over the live surface** — the real domain, the real TLS, the real CDN/proxy, the real cookies, the real redirects, the real responsive behavior.
-- **Shell access to the host running it** — so a browser-observed symptom can be confirmed, refuted, or explained from the server side: container health, service logs, database rows, queue state, cache, migrations, environment, disk, and the deployed revision.
+- **Browser control over the live surface** — real domain, TLS, proxy, cookies, redirects, viewport.
+- **Shell access to the host** — container state, service logs, rows, queue, cache, migrations, environment, deployed revision.
 
-The point of the pairing is causality. "The booking form did nothing in the browser" is a symptom; the backend 500 in the container log plus the row that was never written plus the queued job that never ran is a diagnosis. A finding recorded from only one half is `unproven` until the other half agrees.
+The pairing is what buys causality. "The booking form did nothing" is a symptom; a 500 in the container log beside a row that was never written and a job that never ran is a diagnosis. A finding seen from one half alone is `unproven` until the other agrees.
 
 ## Preflight
 
-Before any flow runs, establish and record all of this. Do not start testing until every item is either confirmed or explicitly waived by the user.
+Record all of this before any flow runs; do not test until each item is confirmed or explicitly waived.
 
-1. **Live surface** — the exact public URL(s) under test, including `www`/apex, locale prefixes, and any environment differences. Confirm it resolves and serves the expected build.
-2. **Host access** — the ssh target, the user, and confirmation that you can reach it non-interactively. Verify the deployment topology from the host: which containers/services run, which compose project, which proxy/ingress fronts them.
-3. **Deployed revision vs local revision** — the commit sha the live stack is running, compared with the local working tree. Every flow result is relative to a revision; record it once and re-check it if the deployment changes mid-audit. A fix verified locally but not deployed is `unproven live`, never `passed`.
-4. **Identities** — the account(s) for each role the flows need (anonymous, customer, owner, employee, staff, admin/superadmin, plus any second tenant/business needed to test isolation and cross-account denial). For each: how to authenticate on the live surface, which flows it may safely run, and which data it owns. **Prefer dedicated audit accounts over real user accounts.** If only real accounts exist, say so explicitly and get the user's consent for any flow that mutates their data.
-5. **Data safety contract** — which flows are read-only; which create data (and how that data is later cleaned up or left tagged as audit residue); which are explicitly forbidden (mass delete, payment, message dispatch to real people, permission/role changes to real staff, anything irreversible). Write this contract into the state file and follow it without re-asking per flow.
-6. **Server-side observation recipes** — the concrete, already-validated commands for: service/container status, recent logs for the frontend and backend, database read access, queue/worker state, cache state, migration state, and disk. Validate each one during preflight. A recipe that fails at finding-time is an environment blocker, not a product defect.
-7. **Browser runtime** — which browser harness is available, its viewport, whether it can reach the live domain, and whether it can be told apart from a local run. Confirm by loading a known live page and comparing a live-only marker.
-8. **Baseline health** — before the first flow, record that the live app is healthy (services up, key public pages load, no pre-existing error storm in the logs). Without this baseline, later log noise cannot be attributed.
+1. **Live surface** — the exact URLs under test, including apex/`www` and locale variants. Confirm it serves the expected build.
+2. **Host access** — ssh target and user, reachable non-interactively; the topology behind it (which containers, which compose project, which proxy fronts them).
+3. **Deployed revision vs local tree** — the sha the live stack runs, against the local working tree. Every verdict is relative to a revision; re-check if the deployment changes mid-audit. A locally-fixed, undeployed defect is `unproven live`, never `passed`.
+4. **Identities** — one account per role the flows need, plus a second tenant/business for isolation and denial tests. For each: how it authenticates live, which flows it may run, what data it owns. **Prefer dedicated audit accounts over real ones**; if only real accounts exist, say so and get consent before any flow mutates their data.
+   - Audit accounts must be purpose-made and unable to reach a real person: use a reserved test range or a domain the user controls, and **never trigger a real outbound message** to prove one works. If signup or verification sends SMS, email, or push, do not walk that path to "confirm" the account — mint it server-side, seed the verified state, and stub outbound delivery. A live audit that texts a stranger is an incident, not a test.
+5. **Data-safety contract** — which flows are read-only, which create data (and how it is later cleaned up or left tagged as audit residue), and which are forbidden outright: mass delete, payment, dispatch to real people, role changes to real staff, anything irreversible. Write it into the state file and follow it without re-asking per flow.
+6. **Server-side recipes** — the concrete, already-validated commands for container status, frontend/backend logs, database reads, queue, cache, migrations, disk. Validate each during preflight; a recipe that fails later is an environment blocker, not a product defect.
+7. **Browser runtime** — which harness, at what viewport, and how to tell a live run from a local one. Confirm by loading a page with a live-only marker.
+8. **Deployment authority** — the Question 3 answer for this run, verbatim. It governs every push, deploy, and live data change for the rest of the chunk, and is re-asked at the next boundary.
+9. **Baseline health** — services up, key public pages loading, no pre-existing error storm. Without it, later log noise cannot be attributed.
 
 ## Flow inventory
 
-Build the inventory **before** testing, in real user order, and write it to the state file. Inventory is derived from the product itself — the live nav, route table, role dashboards, and the existing `docs/ui-tree.md` when present — not from imagination. Mark each candidate flow with a stable ID (`LF-F01`, `LF-F02`, …) and give it:
+Build the inventory **before** testing, from the product itself — live nav, route table, role dashboards, and `docs/ui-tree.md` when present — never from imagination. Give each flow a stable ID (`LF-F01`, …) and record:
 
-- **Actor / role** and **entry point** (URL or how the user reaches it).
-- **Preconditions** — what must already be true, including prior flows in the same session that produce that state.
-- **Steps** — the actual interaction sequence, in order.
-- **Expected result** — including the *order* of observable effects: redirect target, DB write, notification/queue side effect, cache invalidation, and what the next page must show. "Everything happens in the right order" is the explicit target, so state ordering expectations per flow, not just a final state.
-- **Server-side assertion** — what must be visible on the host afterwards (row present/absent, log line, job processed).
+- **Actor and entry point** — role, and the URL or path the user takes to reach it.
+- **Preconditions** — what must already hold, including prior flows that produce the state.
+- **Steps** — the interaction sequence, in order.
+- **Expected result** — including the *order* of effects: redirect target, DB write, queue side effect, cache invalidation, what the next page shows. "Happens in the right order" is the explicit target, so state the ordering, not just the end state.
+- **Server-side assertion** — what must be visible on the host afterwards: row present or absent, log line, job processed.
 - **Cleanup** — none, or the exact reversal.
 - **Verdict** — `pass` / `fail` / `partial` / `blocked` / `unproven` / `not applicable`.
 
-Order the inventory the way a person actually uses the product: anonymous discovery and marketing surfaces → authentication and account recovery → primary authenticated journey end to end → secondary and role-specific journeys → cross-cutting behavior (locale, theme, direction, responsive, notification delivery, permissions, empty/error/loading states). Dependencies are explicit: a later flow that needs an earlier flow's output declares it, and the earlier flow's result gates it.
+Order it the way a person uses the product: anonymous discovery and marketing → authentication and recovery → the primary authenticated journey → secondary and role-specific journeys → cross-cutting behavior. Declare dependencies explicitly: a flow that consumes an earlier flow's output says so, and the earlier verdict gates it.
 
 ## Chunking
 
-**A live user flow audit always runs in chunks, in both fix modes, including automatic fix mode.** The user reviews each completed chunk and gives an explicit go sign before the next chunk starts.
+**This branch always runs in chunks, in both fix modes, including automatic.** The user reviews each chunk and gives an explicit go sign before the next starts. Automatic mode means "decide and fix without asking per finding" — not "run unattended".
 
 Design chunks so that:
 
-- Each chunk is one coherent slice of the product — a journey, a role's surface, or a functional area — not an arbitrary page count. A chunk ends where a user would say "that's a feature."
-- Each chunk fits comfortably in one fresh context window, including its ledger updates and report. When in doubt, make the chunk smaller. A chunk that will not fit is guaranteed to degrade, and a degraded chunk produces false findings.
-- Each chunk has a bounded number of flows (a rough guide: 8–15 flows, or one role-journey) so the ledger stays reviewable.
-- Flows that share state and depend on each other stay in the same chunk; splitting a precondition from its consumer produces false `fail` verdicts.
-- The final chunk is reserved for cross-chunk checks: anything that only breaks when two journeys meet (e.g. an entity created in chunk 2 edited in chunk 6).
+- Each is one coherent slice — a journey, a role's surface, a functional area — ending where a user would say "that's a feature", not at an arbitrary page count.
+- Each fits in one fresh context window including ledger and report. When in doubt, make it smaller: an oversized chunk degrades and produces false findings.
+- Each holds a bounded number of flows (roughly 8–15, or one role-journey) so the ledger stays reviewable.
+- Dependent flows stay together. Splitting a precondition from its consumer manufactures false `fail` verdicts.
+- The last chunk carries cross-chunk checks: whatever only breaks when two journeys meet.
 
-Present the full chunk plan up front, in the state file, and let the user reorder or resize it before chunk 1 starts. Chunks are numbered and fixed; the go sign advances the pointer to exactly one next chunk.
+Present the whole plan up front and let the user reorder or resize it before chunk 1. Chunks are numbered and fixed; a go sign advances the pointer to exactly one chunk.
 
-### State file format
+### State file
 
 `docs/live-flow-audit.md` is the handoff surface. Use this structure:
 
@@ -426,30 +446,28 @@ Present the full chunk plan up front, in the state file, and let the user reorde
 # Live User Flow Audit
 
 - Run ID / started / last updated:
-- Live URL(s):            https://app.example.com  (www/apex/locale variants)
+- Live URL(s):            https://app.example.com  (apex/www/locale variants)
 - SSH host:               user@host   (topology: <what runs where>)
-- Deployed revision:      <sha>   (local tree: <branch @ sha + dirty?>)
+- Deployed revision:      <sha>   (local tree: <branch @ sha, dirty?>)
 - Browser harness / viewport:
 - Fix mode:               manual | automatic  (chunked, go sign per chunk)
+- Deployment authority:   push+deploy allowed? YES/NO  (re-asked every run and chunk)
 - Baseline health:        services up / public pages load / log state
 
 ## Identities
-| Role | Account | How to authenticate live | Data owned | Flows allowed |
+| Role | Account | Authenticates live via | Data owned | Flows allowed |
 |---|---|---|---|---|
 
 ## Data-safety contract
-- Read-only flows: ...
-- Flows that create data: ... (cleanup: ...)
+- Read-only: ...
+- Creates data: ... (cleanup: ...)
 - Forbidden without explicit approval: ...
 
 ## Server-side recipes (validated)
-- containers: <cmd>
-- backend logs: <cmd>
-- db read: <cmd>
-- queue / cache / migrations: <cmd>
+- containers: <cmd>   - logs: <cmd>   - db: <cmd>   - queue/cache/migrations: <cmd>
 
 ## Flow inventory
-| ID | Flow | Actor | Entry | Preconditions | Expected result (incl. ordering) | Server assertion | Cleanup | Verdict | Chunk |
+| ID | Flow | Actor | Entry | Preconditions | Expected (incl. ordering) | Server assertion | Cleanup | Verdict | Chunk |
 |---|---|---|---|---|---|---|---|---|---|
 
 ## Chunk plan
@@ -458,79 +476,75 @@ Present the full chunk plan up front, in the state file, and let the user reorde
 | 1 | ... | LF-F01..LF-F08 | pending |
 
 ## Defect ledger
-| ID | Flow | Severity | Symptom | Host-side proof | Root cause | Fix | Live verification | Status |
+| ID | Flow | Severity | Symptom | Host proof | Root cause | Fix | Live verification | Status |
 |---|---|---|---|---|---|---|---|---|
 
 ## Chunk reports
-### Chunk 1 — <goal>  (go sign: <yes/no + date>)
+### Chunk 1 — <goal>   (go sign: <yes/no, date>)
 <verdicts, evidence, fixes, unproven, data left, next chunk>
 
 ## Next up
 - Chunk: N — <goal>
-- First flow: LF-Fxx (<one line: what to do first>)
+- First flow: LF-Fxx (<what to do first>)
 - Open questions for the user:
 ```
 
-### The chunk loop
+### Chunk loop
 
-For each chunk, in both fix modes:
+Per chunk, in both fix modes:
 
-1. **Announce** the chunk id, its flows, and its goal in one short block. Do not re-ask about scope.
-2. **Execute** every flow in the chunk, in order, and record the verdict as you go. Capture evidence at the moment of the result: the URL, the visible state, the request/response that mattered, the host-side observation. Evidence captured after the fact is reconstruction, and label it as such.
-3. **Confirm every failure on the host side** before recording it as a product defect. If the browser shows a failure and the server shows nothing wrong, that is still a real defect (frontend, proxy, TLS, cookie, caching) — classify it that way rather than dismissing it.
-4. **In automatic fix mode**, fix the confirmed in-scope defects from this chunk as you go: local code fix, focused regression, deploy, re-run the exact failing flow, and record the before/after. In manual fix mode, collect and present them; do not touch application code.
-5. **Update the state file** before reporting: verdicts, new defect entries with stable IDs, flows that remain unproven, and data left behind by the chunk.
-6. **Stop and report.** Do not begin the next chunk. The report is the review artifact:
-
-   - chunk id, goal, and the flows covered with one-line verdicts;
-   - every `fail` / `partial` with the smallest reproduction, observed vs expected, host-side proof, and its `LF-###` ID;
-   - everything fixed in this chunk (in automatic mode) with the commit/deploy and the re-run result;
-   - unproven items and why, each with the one check that would settle it;
+1. **Announce** the chunk id, goal, and flows in a few lines. Do not re-ask about scope.
+2. **Execute** every flow in order, recording the verdict as you go. Capture evidence at the moment of the result — URL, visible state, the request/response that mattered, the host observation. Evidence gathered afterwards is reconstruction; label it so.
+3. **Confirm every failure host-side** before calling it a product defect. A browser failure with a clean server is still a defect (frontend, proxy, TLS, cookie, cache) — classify it as one rather than dismissing it.
+4. **In automatic fix mode**, repair this chunk's confirmed in-scope defects as you go: fix, focused regression, deploy if authorized, re-run the exact failing flow, record before/after. In manual fix mode, collect and present; do not touch application code.
+5. **Update the state file** before reporting — verdicts, new defects with stable IDs, unproven flows, data left behind.
+6. **Stop and report.** Never start the next chunk in the same go sign. The report carries:
+   - chunk id, goal, and each covered flow with a one-line verdict;
+   - every `fail`/`partial` with the smallest reproduction, observed vs expected, host-side proof, and its `LF-###` ID;
+   - what was fixed, with the commit, the sha deployed, and the re-run result;
+   - unproven items, each with the one check that would settle it;
    - data created or left behind, and its cleanup status;
-   - the next chunk's id and its flow list, so the user can approve it with full knowledge;
-   - the resume line, so a fresh session can continue.
+   - the next chunk's id and flow list, so the go sign is informed;
+   - the resume line.
+7. **Re-ask the deployment-authority question** before any chunk that involves a fix. The previous answer is history in the state file, never standing permission.
+8. **Wait for the go sign**, then advance exactly one chunk. Plan changes (merge, split, reorder, drop) are applied to the plan before proceeding. Requested fixes are batched, the affected flows re-verified, and re-reported before advancing.
 
-7. **Wait for the go sign.** Then advance the pointer and start only the next chunk. If the user asks to change the plan (merge, split, reorder, drop flows), update the plan first, then proceed. If the user replies with fixes, batch them, re-verify the affected flows, and re-report before advancing.
-
-Never: run two chunks in one go sign, run ahead "while waiting", or treat silence as approval. When the user explicitly says "keep going without stopping", honor it for the remaining chunks but still emit a report at every chunk boundary so the trail exists.
+Never run two chunks per go sign, never run ahead "while waiting", never treat silence as approval. If the user says "keep going without stopping", honor it for the remaining chunks but still emit a report at every boundary so the trail exists.
 
 ### Resuming in a fresh session
 
-A chunk boundary is designed to be a session boundary. `docs/live-flow-audit.md` must be sufficient to resume with **no conversational memory**: environment, identities, data-safety contract, full flow inventory with preconditions, the chunk plan, every verdict so far, the defect ledger with statuses, the deployed revision, cleanup state, and an explicit "next up" block naming the next chunk and its first flow. At the end of every chunk, verify that a fresh reader could continue correctly; if not, the state file is not finished. Suggest the `context-pack` skill when the resuming session needs the source of a specific defective flow.
+A chunk boundary is designed to be a session boundary. `docs/live-flow-audit.md` must be sufficient to continue with **no conversational memory**: environment, identities, data-safety contract, full inventory with preconditions, chunk plan, every verdict, defect ledger with statuses, deployed revision, cleanup state, and a `## Next up` block naming the next chunk and its first flow. At the end of each chunk, check that a fresh reader could continue; if not, the state file is not finished. Use the `context-pack` skill when the resuming session needs the source behind a specific defective flow.
 
 ## Per-flow protocol
 
-For every flow:
-
-1. State the actor, entry point, and preconditions; verify preconditions actually hold before starting.
-2. Perform the steps in the live browser, in order. Watch for the failure modes that only appear live: expired session mid-flow, redirect to login losing the intended destination, cookie flags, cross-origin/CORS behavior through the real proxy, CDN-cached stale assets, service-worker caching, lazy-loaded chunks failing, real mobile viewport behavior, RTL rendering, Persian digits and calendar.
-3. At the decision point, assert the **order** of effects, not just the end state: UI acknowledgement → API success → DB write → job enqueued → job processed → cache invalidated → next page reflects it. Name explicitly any step that fired out of order or not at all.
-4. On failure, gather the host-side observation immediately: relevant service logs around the request timestamp, the row state, the queue, the cache. Use the preflight recipes. Correlate by timestamp.
-5. Classify the result. `fail` requires a reproduction someone else can repeat. `blocked` means the environment stopped you (missing credential, unreachable host, deployment in progress) and names the blocker. `unproven` means you could not settle it and names the check that would.
-6. Re-run any `fail` once to rule out flake, and record whether it reproduced. A non-reproducing failure is `unproven (flaky)`, not a pass.
+1. State actor, entry, and preconditions; verify the preconditions actually hold.
+2. Perform the steps live, in order. Watch for what only breaks in production: session expiring mid-flow, login redirect losing the intended destination, cookie flags, CORS through the real proxy, CDN-cached stale assets, service-worker caching, lazy chunks failing, real mobile viewport, RTL and locale rendering.
+3. At the decision point, assert the **order** of effects, not the end state: UI acknowledgement → API success → DB write → job enqueued → job processed → cache invalidated → next page reflects it. Name any step that fired out of order or not at all.
+4. On failure, take the host observation immediately — logs around the request timestamp, row state, queue, cache — and correlate by timestamp.
+5. Classify. `fail` needs a reproduction someone else can repeat. `blocked` names the environment blocker. `unproven` names the check that would settle it.
+6. Re-run any `fail` once to rule out flake and record whether it reproduced. A non-reproduction is `unproven (flaky)`, not a pass.
 
 ## Cross-cutting checks
 
-Include these inside the relevant chunks rather than as a separate pass: authentication and session lifecycle (login, refresh, logout invalidation, expired-mid-flow); role and permission boundaries (each role's surface, and a denied case for each role-gated capability); cross-tenant/cross-account isolation on the live surface; empty / loading / error / retry states; validation and error message surfacing; form double-submit and duplicate writes; pagination and sorting; search and filters; file upload and media display; notifications and their delivery; localization and RTL; responsive behavior at mobile width; keyboard reachability of the primary action.
+Fold these into the relevant chunks rather than a separate pass: session lifecycle (login, refresh, logout invalidation, expiry mid-flow); role boundaries (each role's surface plus a denied case per role-gated capability); cross-account isolation; empty / loading / error / retry states; validation and error surfacing; double-submit and duplicate writes; pagination, sorting, search, filters; upload and media display; notification delivery; localization and RTL; mobile width; keyboard reachability of the primary action.
 
 ## Fixing live defects
 
-- Fixes are made in the repository, not on the host. Never hand-edit files in a running container or edit the live database to make a flow pass; record the required change and apply it properly, or fix it locally and report that the live verification is pending a deploy.
-- Treat the live stack as read-mostly. Deploy, restart, migrate, scale, or reconfigure only with explicit approval for that specific instance, and prefer the project's normal deploy path.
-- A fix is `verified live` only after a deploy *and* a re-run of the exact flow that failed. Until then it is `fixed, awaiting live verification`. Say which one it is; never report an unverified fix as closed.
-- When a fix changes behavior for real users (data shape, permissions, validation, session handling), call it out as breaking in the report.
+- Fixes go in the repository, never on the host. No hand-editing a running container, no editing the live database to force a pass.
+- **Deployment authority (Question 3) decides whether a fix may ship.** Without it: commit on the working branch, report `fixed, awaiting live verification`, and name the exact flow to re-run after the user deploys — do not report the defect closed. With it: use the project's normal deploy path, report the sha, re-run the failing flow.
+- Even with authority the live stack is read-mostly: restarts, migrations, scaling, and config changes happen only as part of a deploy, never as a debugging shortcut.
+- A fix is `verified live` only after a deploy **and** a re-run of the failing flow. Otherwise `fixed, awaiting live verification`. Never report an unverified fix as closed.
+- Call out behavior changes affecting real users (data shape, permissions, validation, sessions) as breaking.
 
 ## Branch E completion criteria
 
-The branch is complete only when:
-
-- The flow inventory covers every user-facing feature reachable on the live surface, each with a verdict; anything deliberately out of scope is listed with a reason.
+- Every user-facing feature on the live surface has a verdict; anything out of scope is listed with a reason.
 - Every chunk was executed and reviewed, with a go sign recorded for each transition.
-- Every `fail`/`partial` is either fixed and re-verified live, or carries an explicit decision to defer, with the reason.
-- Every defect was confirmed host-side, or is recorded as `unproven` with the settling check named.
-- Cleanup state is accurate: what the audit created on the live system, what was removed, what remains and why.
+- Every `fail`/`partial` is fixed and re-verified live, or explicitly deferred with a reason.
+- Every defect is confirmed host-side, or recorded `unproven` with the settling check named.
+- Cleanup is accurate: what the audit created, what was removed, what remains and why.
 - The data-safety contract held; no unauthorized or irreversible live action was taken.
-- `docs/live-flow-audit.md` records the full run and a final summary table, and `docs/live-flow-findings.md` (if used) holds the complete ledger with terminal statuses.
+- `docs/live-flow-audit.md` holds the full run and a final summary, and `docs/live-flow-findings.md` (if used) the complete ledger with terminal statuses.
 
 ---
 
@@ -546,7 +560,7 @@ For every run, report:
 - Browser runtime, projects, and viewport evidence where applicable.
 - Baseline versus final measurements for a code quality audit.
 - Severity, exploitability, probe, and status for a security audit.
-- For a live user flow audit: the live URL and host, the deployed revision, the chunk id and its flow verdicts, the confirmed defects, the fixes and whether each is `verified live` or `awaiting live verification`, the audit data left on the live system, and the next chunk awaiting a go sign.
+- For a live user flow audit: the live URL and host, the deployed revision, the chunk id and its flow verdicts, the confirmed defects, each fix as `verified live` or `awaiting live verification`, the audit data left on the live system, and the next chunk awaiting a go sign.
 - Unproven cells and environmental limitations.
 - Remaining repair/feature queue and next order.
 
