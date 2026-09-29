@@ -36,6 +36,30 @@
       "prompt": "Audit the whole project and fix everything automatically. I do not want to review each finding.",
       "expected_output": "The orchestrator confirms the mode, the user selects auto-fix, and the run proceeds with discovery then autonomous repair, verification, and a final complete report without per-finding prompts.",
       "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Run a live user flow audit against the deployed app. The site is at my production domain and I can give you shell access to the host that runs it. Go through every feature end to end and fix whatever is broken — I don't want to review anything until you're done.",
+      "expected_output": "The orchestrator asks the mode questions, then enforces the chunking rule: it runs preflight (live URL, host access, deployed revision, identities, data-safety contract, server-side observation recipes, browser runtime, baseline health), writes the full flow inventory and a numbered chunk plan, executes only chunk 1, fixes confirmed defects in place, and stops for a go sign with a chunk report and next-chunk list. It does not run unattended through the remaining chunks.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "A booking form silently fails on the live site — the browser shows a success toast but the appointment never appears. Use the host to find out why.",
+      "expected_output": "The orchestrator treats the browser symptom and the host observation as one investigation: it reproduces the flow live, then uses the validated recipes (service logs at the request timestamp, row state, queue, cache) to establish the ordering failure, confirms the defect host-side before recording it, records it with a stable ID, fixes it in the repository rather than on the host, and reports it as awaiting live verification until it is deployed and the flow re-run.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "The live flow audit is at a chunk boundary. Finish it in this session, don't stop to ask me, just run the rest of the chunks.",
+      "expected_output": "The orchestrator honors the request to keep going but still emits a report at every chunk boundary, and still checkpoints the state file so each boundary is resumable. It does not skip the boundary itself.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Open a fresh session and continue the live user flow audit from where the last session stopped.",
+      "expected_output": "With no conversational memory, the orchestrator reads docs/live-flow-audit.md, confirms the live URL, host, deployed revision, identities, data-safety contract, flow verdicts so far, defect ledger statuses, and cleanup state, then starts exactly the chunk named in the Next up block at the flow it names — without re-running completed chunks and without re-asking settled questions.",
+      "files": []
     }
   ]
 }

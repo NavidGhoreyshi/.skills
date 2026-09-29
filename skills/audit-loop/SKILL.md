@@ -1,27 +1,31 @@
 ---
 name: audit-loop
-description: Choose between a complete API wiring audit, a code quality audit, a security audit, and a user-guided missed-features assessment. Ask two setup questions first (audit type, then fix mode). The wiring audit inspects frontend/backend contracts, permissions, persistence, state transitions, privacy, and browser proof. The quality audit measures and removes maintainability debt without changing behavior. The security audit hunts exploitable authentication, authorization, tenancy, input-handling, secrets, and data-exposure defects. The missed-features assessment walks pages and UI components one by one, proposes possible interactions based on existing product capabilities, and records the user's decision for each proposal.
+description: Choose between a complete API wiring audit, a code quality audit, a security audit, a live user flow audit against the deployed app, and a user-guided missed-features assessment. Ask two setup questions first (audit type, then fix mode). The wiring audit inspects frontend/backend contracts, permissions, persistence, state transitions, privacy, and browser proof. The quality audit measures and removes maintainability debt without changing behavior. The security audit hunts exploitable authentication, authorization, tenancy, input-handling, secrets, and data-exposure defects. The live user flow audit drives the real deployed site through every feature end to end with browser control plus shell access to the host, in reviewed chunks. The missed-features assessment walks pages and UI components one by one, proposes possible interactions based on existing product capabilities, and records the user's decision for each proposal.
 ---
 
-# Complete UI Audit, Code Quality Audit, Security Audit, and Missed-Features Assessment
+# Complete UI Audit, Code Quality Audit, Security Audit, Live User Flow Audit, and Missed-Features Assessment
 
 ## Purpose
 
-This skill supports four deliberately different audit types:
+This skill supports five deliberately different audit types:
 
 1. **API wiring audit** — inspect frontend/backend contracts, permissions, persistence, state transitions, privacy, and browser proof for defects or coverage gaps.
 2. **Code quality audit** — measure and reduce maintainability debt (duplication, dead code, complexity, inconsistent patterns, unsafe type escapes, missing error handling) without changing observable behavior.
 3. **Security audit** — find exploitable authentication, authorization, tenancy/isolation, input-handling, secret-management, and data-exposure defects, with a reproducible probe for each claim.
-4. **Missed-features assessment** — inspect each page and UI component one by one and propose possible missing interactions, buttons, tools, states, and affordances based on the existing features already available on that surface. The user decides whether each proposal is needed, intentionally omitted, or deferred.
+4. **Live user flow audit** — drive the *deployed* application through every user-facing feature end to end, with browser control over the live domain and shell access to the host, proving that what ships actually works in the right order. Executed in reviewed chunks.
+5. **Missed-features assessment** — inspect each page and UI component one by one and propose possible missing interactions, buttons, tools, states, and affordances based on the existing features already available on that surface. The user decides whether each proposal is needed, intentionally omitted, or deferred.
 
-Do not mix these audit types. A feature suggestion is not an API-wiring defect, a wiring gap is not automatically a missing product feature, a maintainability observation is not a security vulnerability, and a vulnerability is not a style nit. Report each finding under exactly one branch.
+Do not mix these audit types. A feature suggestion is not an API-wiring defect, a wiring gap is not automatically a missing product feature, a maintainability observation is not a security vulnerability, a vulnerability is not a style nit, and a live-flow failure is not automatically a wiring defect. Report each finding under exactly one branch.
 
 When several types are selected, run them in this order — each later branch consumes the earlier map, and behavior-changing fixes land before refactors:
 
-1. API wiring audit
-2. Security audit
-3. Code quality audit
-4. Missed-features assessment
+1. Live user flow audit
+2. API wiring audit
+3. Security audit
+4. Code quality audit
+5. Missed-features assessment
+
+The live user flow runs first because it produces the ground truth: the actual inventory of what the product does, in the order a real user does it, with the real failures attached. The static branches then explain and generalize what the live run found.
 
 ## Required mode selection
 
@@ -35,7 +39,8 @@ Ask:
 
 Options (multiple selections allowed):
 
-- **API wiring audit (Recommended)** — inspect frontend/backend wiring, authorization, persistence, state transitions, privacy, and browser proof.
+- **Live user flow audit (Recommended)** — drive the deployed app end to end on the live domain, with browser control plus host access, in user-reviewed chunks.
+- **API wiring audit** — inspect frontend/backend wiring, authorization, persistence, state transitions, privacy, and browser proof.
 - **Code quality audit** — measure and reduce maintainability debt without changing behavior.
 - **Security audit** — hunt exploitable authentication, authorization, tenancy, input, secret, and data-exposure defects.
 - **Missed-features assessment** — walk through every page and UI component one by one and ask the user to decide on possible additional interactions.
@@ -57,6 +62,8 @@ The fix-mode choice controls confirmed defects and approved feature additions on
 
 If the user explicitly says “just fix it,” “commit directly,” or equivalent, automatic fix mode may be selected without another confirmation question, but the audit-type question is still mandatory unless the user already specified it.
 
+**Chunking rule (mandatory for Branch E, both fix modes).** Automatic fix mode in a live user flow audit is *never* a single unattended run. The branch always works in chunks and always stops for the user's go sign between chunks — see Branch E. Automatic mode means "decide and fix without asking per finding", not "run unattended until the end". A single-session sweep of a whole live product is not achievable within a coherent context window, so the chunk boundary is a correctness requirement, not a courtesy.
+
 ## Project files
 
 Defaults, configurable per project:
@@ -69,6 +76,8 @@ Defaults, configurable per project:
 | `docs/code-quality-audit-findings.md` | Code quality ledger (baseline vs final measurements, debt classification). |
 | `docs/security-audit-findings.md` | Security ledger (severity, exploitability, probe, status). |
 | `docs/missed-features-assessment.md` | Missed-features ledger and per-proposal decisions. |
+| `docs/live-flow-audit.md` | Branch E state file: environment, identities, flow inventory, chunk plan, per-chunk verdicts, defect ledger, resume instructions. The single document a fresh session reads to continue. |
+| `docs/live-flow-findings.md` | Branch E live defect ledger (`LF-001`…), with the flow, the exact reproduction, the observed vs expected result, the host-side proof, and status. Optional — the state file may hold the ledger if the project prefers one file. |
 | `docs/browser-tools.md` | How to launch the project's browser runtime for proof (when present). |
 
 ## Shared invariants
@@ -83,6 +92,7 @@ Defaults, configurable per project:
 - Do not invent domain behavior, identities, data, permissions, or product commitments from a visual reference.
 - Do not implement a missed-feature proposal until the user classifies it as needed/approved.
 - Do not commit, push, deploy, reset, stash, or stage broadly unless the user explicitly requests it.
+- In Branch E, a live environment is the user's real system. Never delete, bulk-modify, or irreversibly mutate data you did not create in this run; never restart, redeploy, roll back, or reconfigure a service without explicit per-instance approval; never print secrets, tokens, session cookies, or personal data into the ledger — record the credential name and redact the value.
 
 ---
 
@@ -352,6 +362,178 @@ The branch is complete only when:
 
 ---
 
+# Branch E — Live user flow audit
+
+Use this branch when the user selects **Live user flow audit**. It is documented last but runs first when selected together with other branches, because it establishes the ground truth the static branches then explain.
+
+## Goal
+
+Drive the application **as it is actually deployed** — on the real domain, against the real backend, real database, real cache, real queue — through every user-facing feature, end to end, and prove that each one works, that each thing connects to the thing it must connect to, and that steps happen in the right order.
+
+This branch is the ground truth for the product. It is not a smoke test, not a render check, and not a re-run of the project's local E2E suite against localhost. Its distinguishing property is that it has both halves of the system available at once:
+
+- **Browser control over the live surface** — the real domain, the real TLS, the real CDN/proxy, the real cookies, the real redirects, the real responsive behavior.
+- **Shell access to the host running it** — so a browser-observed symptom can be confirmed, refuted, or explained from the server side: container health, service logs, database rows, queue state, cache, migrations, environment, disk, and the deployed revision.
+
+The point of the pairing is causality. "The booking form did nothing in the browser" is a symptom; the backend 500 in the container log plus the row that was never written plus the queued job that never ran is a diagnosis. A finding recorded from only one half is `unproven` until the other half agrees.
+
+## Preflight
+
+Before any flow runs, establish and record all of this. Do not start testing until every item is either confirmed or explicitly waived by the user.
+
+1. **Live surface** — the exact public URL(s) under test, including `www`/apex, locale prefixes, and any environment differences. Confirm it resolves and serves the expected build.
+2. **Host access** — the ssh target, the user, and confirmation that you can reach it non-interactively. Verify the deployment topology from the host: which containers/services run, which compose project, which proxy/ingress fronts them.
+3. **Deployed revision vs local revision** — the commit sha the live stack is running, compared with the local working tree. Every flow result is relative to a revision; record it once and re-check it if the deployment changes mid-audit. A fix verified locally but not deployed is `unproven live`, never `passed`.
+4. **Identities** — the account(s) for each role the flows need (anonymous, customer, owner, employee, staff, admin/superadmin, plus any second tenant/business needed to test isolation and cross-account denial). For each: how to authenticate on the live surface, which flows it may safely run, and which data it owns. **Prefer dedicated audit accounts over real user accounts.** If only real accounts exist, say so explicitly and get the user's consent for any flow that mutates their data.
+5. **Data safety contract** — which flows are read-only; which create data (and how that data is later cleaned up or left tagged as audit residue); which are explicitly forbidden (mass delete, payment, message dispatch to real people, permission/role changes to real staff, anything irreversible). Write this contract into the state file and follow it without re-asking per flow.
+6. **Server-side observation recipes** — the concrete, already-validated commands for: service/container status, recent logs for the frontend and backend, database read access, queue/worker state, cache state, migration state, and disk. Validate each one during preflight. A recipe that fails at finding-time is an environment blocker, not a product defect.
+7. **Browser runtime** — which browser harness is available, its viewport, whether it can reach the live domain, and whether it can be told apart from a local run. Confirm by loading a known live page and comparing a live-only marker.
+8. **Baseline health** — before the first flow, record that the live app is healthy (services up, key public pages load, no pre-existing error storm in the logs). Without this baseline, later log noise cannot be attributed.
+
+## Flow inventory
+
+Build the inventory **before** testing, in real user order, and write it to the state file. Inventory is derived from the product itself — the live nav, route table, role dashboards, and the existing `docs/ui-tree.md` when present — not from imagination. Mark each candidate flow with a stable ID (`LF-F01`, `LF-F02`, …) and give it:
+
+- **Actor / role** and **entry point** (URL or how the user reaches it).
+- **Preconditions** — what must already be true, including prior flows in the same session that produce that state.
+- **Steps** — the actual interaction sequence, in order.
+- **Expected result** — including the *order* of observable effects: redirect target, DB write, notification/queue side effect, cache invalidation, and what the next page must show. "Everything happens in the right order" is the explicit target, so state ordering expectations per flow, not just a final state.
+- **Server-side assertion** — what must be visible on the host afterwards (row present/absent, log line, job processed).
+- **Cleanup** — none, or the exact reversal.
+- **Verdict** — `pass` / `fail` / `partial` / `blocked` / `unproven` / `not applicable`.
+
+Order the inventory the way a person actually uses the product: anonymous discovery and marketing surfaces → authentication and account recovery → primary authenticated journey end to end → secondary and role-specific journeys → cross-cutting behavior (locale, theme, direction, responsive, notification delivery, permissions, empty/error/loading states). Dependencies are explicit: a later flow that needs an earlier flow's output declares it, and the earlier flow's result gates it.
+
+## Chunking
+
+**A live user flow audit always runs in chunks, in both fix modes, including automatic fix mode.** The user reviews each completed chunk and gives an explicit go sign before the next chunk starts.
+
+Design chunks so that:
+
+- Each chunk is one coherent slice of the product — a journey, a role's surface, or a functional area — not an arbitrary page count. A chunk ends where a user would say "that's a feature."
+- Each chunk fits comfortably in one fresh context window, including its ledger updates and report. When in doubt, make the chunk smaller. A chunk that will not fit is guaranteed to degrade, and a degraded chunk produces false findings.
+- Each chunk has a bounded number of flows (a rough guide: 8–15 flows, or one role-journey) so the ledger stays reviewable.
+- Flows that share state and depend on each other stay in the same chunk; splitting a precondition from its consumer produces false `fail` verdicts.
+- The final chunk is reserved for cross-chunk checks: anything that only breaks when two journeys meet (e.g. an entity created in chunk 2 edited in chunk 6).
+
+Present the full chunk plan up front, in the state file, and let the user reorder or resize it before chunk 1 starts. Chunks are numbered and fixed; the go sign advances the pointer to exactly one next chunk.
+
+### State file format
+
+`docs/live-flow-audit.md` is the handoff surface. Use this structure:
+
+```markdown
+# Live User Flow Audit
+
+- Run ID / started / last updated:
+- Live URL(s):            https://app.example.com  (www/apex/locale variants)
+- SSH host:               user@host   (topology: <what runs where>)
+- Deployed revision:      <sha>   (local tree: <branch @ sha + dirty?>)
+- Browser harness / viewport:
+- Fix mode:               manual | automatic  (chunked, go sign per chunk)
+- Baseline health:        services up / public pages load / log state
+
+## Identities
+| Role | Account | How to authenticate live | Data owned | Flows allowed |
+|---|---|---|---|---|
+
+## Data-safety contract
+- Read-only flows: ...
+- Flows that create data: ... (cleanup: ...)
+- Forbidden without explicit approval: ...
+
+## Server-side recipes (validated)
+- containers: <cmd>
+- backend logs: <cmd>
+- db read: <cmd>
+- queue / cache / migrations: <cmd>
+
+## Flow inventory
+| ID | Flow | Actor | Entry | Preconditions | Expected result (incl. ordering) | Server assertion | Cleanup | Verdict | Chunk |
+|---|---|---|---|---|---|---|---|---|---|
+
+## Chunk plan
+| Chunk | Goal | Flows | Status |
+|---|---|---|---|
+| 1 | ... | LF-F01..LF-F08 | pending |
+
+## Defect ledger
+| ID | Flow | Severity | Symptom | Host-side proof | Root cause | Fix | Live verification | Status |
+|---|---|---|---|---|---|---|---|---|
+
+## Chunk reports
+### Chunk 1 — <goal>  (go sign: <yes/no + date>)
+<verdicts, evidence, fixes, unproven, data left, next chunk>
+
+## Next up
+- Chunk: N — <goal>
+- First flow: LF-Fxx (<one line: what to do first>)
+- Open questions for the user:
+```
+
+### The chunk loop
+
+For each chunk, in both fix modes:
+
+1. **Announce** the chunk id, its flows, and its goal in one short block. Do not re-ask about scope.
+2. **Execute** every flow in the chunk, in order, and record the verdict as you go. Capture evidence at the moment of the result: the URL, the visible state, the request/response that mattered, the host-side observation. Evidence captured after the fact is reconstruction, and label it as such.
+3. **Confirm every failure on the host side** before recording it as a product defect. If the browser shows a failure and the server shows nothing wrong, that is still a real defect (frontend, proxy, TLS, cookie, caching) — classify it that way rather than dismissing it.
+4. **In automatic fix mode**, fix the confirmed in-scope defects from this chunk as you go: local code fix, focused regression, deploy, re-run the exact failing flow, and record the before/after. In manual fix mode, collect and present them; do not touch application code.
+5. **Update the state file** before reporting: verdicts, new defect entries with stable IDs, flows that remain unproven, and data left behind by the chunk.
+6. **Stop and report.** Do not begin the next chunk. The report is the review artifact:
+
+   - chunk id, goal, and the flows covered with one-line verdicts;
+   - every `fail` / `partial` with the smallest reproduction, observed vs expected, host-side proof, and its `LF-###` ID;
+   - everything fixed in this chunk (in automatic mode) with the commit/deploy and the re-run result;
+   - unproven items and why, each with the one check that would settle it;
+   - data created or left behind, and its cleanup status;
+   - the next chunk's id and its flow list, so the user can approve it with full knowledge;
+   - the resume line, so a fresh session can continue.
+
+7. **Wait for the go sign.** Then advance the pointer and start only the next chunk. If the user asks to change the plan (merge, split, reorder, drop flows), update the plan first, then proceed. If the user replies with fixes, batch them, re-verify the affected flows, and re-report before advancing.
+
+Never: run two chunks in one go sign, run ahead "while waiting", or treat silence as approval. When the user explicitly says "keep going without stopping", honor it for the remaining chunks but still emit a report at every chunk boundary so the trail exists.
+
+### Resuming in a fresh session
+
+A chunk boundary is designed to be a session boundary. `docs/live-flow-audit.md` must be sufficient to resume with **no conversational memory**: environment, identities, data-safety contract, full flow inventory with preconditions, the chunk plan, every verdict so far, the defect ledger with statuses, the deployed revision, cleanup state, and an explicit "next up" block naming the next chunk and its first flow. At the end of every chunk, verify that a fresh reader could continue correctly; if not, the state file is not finished. Suggest the `context-pack` skill when the resuming session needs the source of a specific defective flow.
+
+## Per-flow protocol
+
+For every flow:
+
+1. State the actor, entry point, and preconditions; verify preconditions actually hold before starting.
+2. Perform the steps in the live browser, in order. Watch for the failure modes that only appear live: expired session mid-flow, redirect to login losing the intended destination, cookie flags, cross-origin/CORS behavior through the real proxy, CDN-cached stale assets, service-worker caching, lazy-loaded chunks failing, real mobile viewport behavior, RTL rendering, Persian digits and calendar.
+3. At the decision point, assert the **order** of effects, not just the end state: UI acknowledgement → API success → DB write → job enqueued → job processed → cache invalidated → next page reflects it. Name explicitly any step that fired out of order or not at all.
+4. On failure, gather the host-side observation immediately: relevant service logs around the request timestamp, the row state, the queue, the cache. Use the preflight recipes. Correlate by timestamp.
+5. Classify the result. `fail` requires a reproduction someone else can repeat. `blocked` means the environment stopped you (missing credential, unreachable host, deployment in progress) and names the blocker. `unproven` means you could not settle it and names the check that would.
+6. Re-run any `fail` once to rule out flake, and record whether it reproduced. A non-reproducing failure is `unproven (flaky)`, not a pass.
+
+## Cross-cutting checks
+
+Include these inside the relevant chunks rather than as a separate pass: authentication and session lifecycle (login, refresh, logout invalidation, expired-mid-flow); role and permission boundaries (each role's surface, and a denied case for each role-gated capability); cross-tenant/cross-account isolation on the live surface; empty / loading / error / retry states; validation and error message surfacing; form double-submit and duplicate writes; pagination and sorting; search and filters; file upload and media display; notifications and their delivery; localization and RTL; responsive behavior at mobile width; keyboard reachability of the primary action.
+
+## Fixing live defects
+
+- Fixes are made in the repository, not on the host. Never hand-edit files in a running container or edit the live database to make a flow pass; record the required change and apply it properly, or fix it locally and report that the live verification is pending a deploy.
+- Treat the live stack as read-mostly. Deploy, restart, migrate, scale, or reconfigure only with explicit approval for that specific instance, and prefer the project's normal deploy path.
+- A fix is `verified live` only after a deploy *and* a re-run of the exact flow that failed. Until then it is `fixed, awaiting live verification`. Say which one it is; never report an unverified fix as closed.
+- When a fix changes behavior for real users (data shape, permissions, validation, session handling), call it out as breaking in the report.
+
+## Branch E completion criteria
+
+The branch is complete only when:
+
+- The flow inventory covers every user-facing feature reachable on the live surface, each with a verdict; anything deliberately out of scope is listed with a reason.
+- Every chunk was executed and reviewed, with a go sign recorded for each transition.
+- Every `fail`/`partial` is either fixed and re-verified live, or carries an explicit decision to defer, with the reason.
+- Every defect was confirmed host-side, or is recorded as `unproven` with the settling check named.
+- Cleanup state is accurate: what the audit created on the live system, what was removed, what remains and why.
+- The data-safety contract held; no unauthorized or irreversible live action was taken.
+- `docs/live-flow-audit.md` records the full run and a final summary table, and `docs/live-flow-findings.md` (if used) holds the complete ledger with terminal statuses.
+
+---
+
 # Documentation and reporting
 
 For every run, report:
@@ -364,6 +546,7 @@ For every run, report:
 - Browser runtime, projects, and viewport evidence where applicable.
 - Baseline versus final measurements for a code quality audit.
 - Severity, exploitability, probe, and status for a security audit.
+- For a live user flow audit: the live URL and host, the deployed revision, the chunk id and its flow verdicts, the confirmed defects, the fixes and whether each is `verified live` or `awaiting live verification`, the audit data left on the live system, and the next chunk awaiting a go sign.
 - Unproven cells and environmental limitations.
 - Remaining repair/feature queue and next order.
 

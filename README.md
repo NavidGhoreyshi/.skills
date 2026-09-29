@@ -6,7 +6,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 
 | Skill | Purpose |
 |---|---|
-| `audit-loop` | Run a complete project-wide audit in one pass. Four audit types: API wiring (frontend/backend contracts, permissions, persistence, state transitions, privacy, browser proof), code quality (maintainability debt, measured, behavior-preserving), security (authentication, authorization, tenancy isolation, input handling, secrets, data exposure), and a user-guided missed-features assessment. Builds a finding ledger before repairing. |
+| `audit-loop` | Run a complete project-wide audit in one pass. Five audit types: live user flow (drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks), API wiring (frontend/backend contracts, permissions, persistence, state transitions, privacy, browser proof), code quality (maintainability debt, measured, behavior-preserving), security (authentication, authorization, tenancy isolation, input handling, secrets, data exposure), and a user-guided missed-features assessment. Builds a finding ledger before repairing. |
 | `tree-mapper` | Build or refresh `docs/ui-tree.md` — the frontend/backend integration tree and per-unit wiring inventory that audits depend on. |
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
@@ -48,7 +48,8 @@ At the very start, `audit-loop` asks two setup questions.
 
 **Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase):
 
-- **API wiring audit** (recommended) — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
+- **Live user flow audit** (recommended) — drive the *deployed* app through every user-facing feature end to end, on the live domain, with browser control **and** shell access to the host so a browser symptom can be confirmed or refuted server-side. Runs in reviewed chunks.
+- **API wiring audit** — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
 - **Security audit** — probe every trust boundary: authentication, authorization and tenancy isolation, input handling, secret management, data exposure, abuse resistance, and configuration. Each finding needs a reproducible non-destructive probe; a negative result needs the recorded attempt too.
 - **Code quality audit** — measure maintainability debt (duplication, dead code, complexity, unsafe type escapes, swallowed errors, N+1 access, test quality) on a recorded baseline, then reduce it without changing observable behavior.
 - **Missed-features assessment** — walk pages and components one by one, propose only interactions the product's existing data, routes, and permissions already support, and let you classify each as needed / intentionally left out / defer / not applicable.
@@ -59,6 +60,43 @@ At the very start, `audit-loop` asks two setup questions.
 - **Automatic fix mode** — audit the whole project, then autonomously fix every confirmed in-scope defect, add regression coverage, verify the repairs, and report the complete ledger at the end.
 
 Discovery and proof are identical in both fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
+
+**Automatic fix mode is still chunked in a live user flow audit.** The run always stops at a chunk boundary for your go sign, because a whole-product live sweep will not fit in one coherent context window. Automatic means "decide and fix without asking per finding" — not "run unattended until the end".
+
+#### Live user flow audit, in practice
+
+```text
+> What kind of audit should this run perform?
+→ 1. Live user flow audit
+
+Live URL + ssh host + identities confirmed. 43 flows inventoried, split into 6 chunks.
+Full plan written to docs/live-flow-audit.md. Starting chunk 1.
+
+── Chunk 1 — anonymous discovery (go sign: pending) ─────────────────
+
+| Flow | Verdict | Note |
+|------|---------|------|
+| LF-F01 home / hero | pass | |
+| LF-F02 search + filters | pass | |
+| LF-F03 public business profile | fail | phone tap does nothing |
+| ...  | | |
+
+LF-003 · Critical · public business profile · phone tap does nothing
+  repro:   open /b/demo-b-1, tap the phone number
+  observed: no navigation, no request in the network log
+  expected: tel: intent fires
+  host:     no backend hit — so this is a frontend-only defect, not an API one
+  fix:      anchor renders as <a href="tel:..."> but is wrapped in a div with
+            onClick that swallows the default
+  status:   fixed, awaiting live verification
+
+Audit data left on live: 1 test appointment (chunk 1, id #4821). Cleanup listed in state file.
+Next up: chunk 2 — authentication and account recovery (LF-F09..LF-F16)
+
+Go sign for chunk 2?
+```
+
+Everything needed to resume lives in `docs/live-flow-audit.md`, so the next chunk can run in a **fresh session** with no conversational memory — the state file names the next chunk and its first flow.
 
 #### Manual fix mode, in practice
 
@@ -147,7 +185,7 @@ Write the ROADMAP.md that `ompo run` executes — and restructure one that keeps
 
 - Roles such as "tree-mapper" and "section-auditor" are **responsibilities, not required agent names**. If a matching sub-agent is unavailable in the runtime, the orchestrator performs the responsibility directly with the tools at hand.
 - The skill documents are runtime-agnostic — any agent that loads `SKILL.md` (Claude Code, Codex, Cursor, and similar) can run them.
-- Audit documents default to `docs/ui-tree.md`, `docs/ui-audit-progress.md`, `docs/wiring-audit-findings.md`, and `docs/browser-tools.md`; the paths are configurable per project.
+- Audit documents default to `docs/ui-tree.md`, `docs/ui-audit-progress.md`, `docs/wiring-audit-findings.md`, `docs/live-flow-audit.md`, and `docs/browser-tools.md`; the paths are configurable per project.
 
 ## License
 
