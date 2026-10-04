@@ -12,6 +12,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
 | `deep-research` | Research anything on the internet with platform breadth (agent-reach) and extraction depth (scrapling, patchright-enhanced fallback). |
 | `roadmap-composition` | Compose or revise an ompo `ROADMAP.md` — the multi-session plan an ompo orchestrator executes slice by slice. Splits work by file ownership and context budget, carries interfaces into slice bodies, and ships an audit script that flags overlapping, unbounded, or sweep-shaped slices. |
+| `www` | Turn a session's mistakes, near misses and miscommunication into durable rules. Two modes — retro on the current conversation, or a corpus audit sweeping past transcripts — then routes each lesson to the strongest mechanism that prevents it recurring: a linter rule, a skill, a global or project `AGENTS.md` line, or nothing at all. Ships a zero-dependency scanner that ranks candidate turns across the omp and opencode transcript stores. |
 
 ## Install
 
@@ -32,6 +33,7 @@ npx skills add NavidGhoreyshi/.skills --skill section-auditor --yes
 npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
 npx skills add NavidGhoreyshi/.skills --skill deep-research --yes
 npx skills add NavidGhoreyshi/.skills --skill roadmap-composition --yes
+npx skills add NavidGhoreyshi/.skills --skill www --yes
 ```
 
 See what's available without installing anything:
@@ -181,6 +183,18 @@ Write the ROADMAP.md that `ompo run` executes — and restructure one that keeps
 - Carries the interfaces dependencies established into each slice body, instead of leaving workers to re-derive them from source.
 - Validates with `ompo lint`, a bundled composition audit (`scripts/audit-roadmap.mjs`: overlap, unbounded scope, sweep smell), and `ompo plan`.
 - Ships two calibration fixtures: a clean roadmap and one reproducing a real wedge, so the rules stay checkable.
+
+### www
+
+Turn what went wrong into something that cannot happen again — an agent rules file that only accumulates advice is the failure mode this replaces.
+
+- **Two modes.** *Session retro* reads the current conversation. *Audit mode* sweeps a corpus of past transcripts — the shape that produced most of one user's global rules, 47 items judged one at a time.
+- **Finds incidents from evidence, not recall.** A bundled zero-dependency scanner (`scripts/incidents.py`) ranks candidate turns as `retro` / `correction` / `repair` / `error`, reading both the omp JSONL store and the opencode sqlite store — including the `session_v2`/`session_message` tables, since the legacy ones are empty and will convince you the history is gone.
+- **Routes every lesson to the weakest mechanism that still prevents it recurring:** a linter rule with a bad/good fixture pair, a branched skill, one line in a global or project `AGENTS.md`, or *nothing at all* — some lessons are real, unwriteable, and better said than filed.
+- **Treats "too narrow" as a trigger-wording problem.** Rewording a viewport-lock rule to name the shape of the situation rather than the instance that produced it is how a rejected rule becomes a general one.
+- **Records rejections too**, so the same non-lesson stops being re-proposed next time.
+
+Depends on `python3` and nothing else. Reads the default omp and opencode stores under `~`; both paths are overridable.
 
 
 ## How it works
