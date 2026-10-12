@@ -842,71 +842,63 @@ Add this step to **Branch F completion**:
 
 Use this branch when the user selects **SEO audit**. In a mixed run it executes fifth — after security, before code quality — because its remediations change served markup and copy, and code quality freezes behavior.
 
-Two installed skills own the domain detail; this branch owns the inventory, the probes, the classification, and the ledger. Reach for the owning skill rather than restating either checklist here:
+## Goal
 
-| Domain | Skill | Owns |
-|---|---|---|
-| Classic search | `skill://seo-audit` | Crawlability and indexation, technical foundations, international and local setup, on-page elements, content quality and E-E-A-T, site-type issue lists, the schema detection limits, report format |
-| AI answer engines | `skill://ai-seo` | AI visibility measurement, citation versus recommendation behavior, agent readiness (`llms.txt`, `llms-full.txt`, agent-readable pricing, WebMCP), per-platform ranking factors, citable formats, monitoring |
-
-Both disclose reference files (`skill://seo-audit/references/…`, `skill://ai-seo/references/…`). Open the one the owning skill names for the question in front of you; never load a reference folder wholesale.
+Find what suppresses organic and AI-search visibility: crawl and indexation faults, technical and on-page gaps, schema and content problems, weak authority, and absence from AI answers. `skill://seo-audit` owns classic-search detail, `skill://ai-seo` owns AI answer-engine detail; this branch owns the inventory, the probes, the classification, and the ledger. Both disclose references (`skill://seo-audit/references/…`, `skill://ai-seo/references/…`) — open the one the owning skill names for the question in front of you.
 
 ## Rules of engagement
 
-- Audit only the site the user owns or explicitly authorized; probe it without mutating anything. Never crawl a third party's site as part of an audit.
+- Audit only the site the user owns or authorized; probe it without mutating anything, and never crawl a third party's site.
 - Record the URL, the status code, and the instrument behind every observation — a finding without its instrument is a rumor.
-- Probe at a human pace and within the site's own crawl directives; never bypass a `robots.txt` rule, an authentication wall, or a rate limit to obtain a finding.
-- Implement only remediations that satisfy search-engine guidelines. When a request would need cloaking, doorway pages, link schemes, or keyword stuffing, refuse it and record the request.
+- Probe at a human pace, within the site's own crawl directives.
+- Implement only guideline-satisfying remediations; refuse and record a request that needs cloaking, doorway pages, link schemes, or keyword stuffing.
 
 ## Inventory phase
 
-1. Take the URL set from `docs/ui-tree.md` when the wiring branch has built it; otherwise enumerate routes from the router, the sitemap, and rendered navigation. The probe unit is a URL **class** (template + render mode), not each URL.
-2. Collect the crawl surface: `robots.txt`, sitemaps, canonical tags, `hreflang`, redirect chains, pagination and filtered/parameterized URLs, `noindex` headers and tags, and every host or locale variant the site answers on.
-3. Classify the site type (SaaS, e-commerce, content, local) and let `skill://seo-audit` weight the checklist — one finding ranks differently per type.
-4. Record each URL class's render mode (server-rendered, client-rendered, static); it picks the probe instrument.
+1. Take the URL set from `docs/ui-tree.md` when the wiring branch built it; otherwise enumerate routes from the router, sitemap, and rendered navigation. The probe unit is a URL **class** (template + render mode).
+2. Record the crawl surface: `robots.txt`, sitemaps, canonicals, `hreflang`, redirect chains, filtered and paginated URLs, `noindex`, and every host or locale variant.
+3. Classify the site type (SaaS, e-commerce, content, local) — `skill://seo-audit` weights the checklist per type — and each class's render mode, which picks the probe instrument.
 
 ## Probe set
 
-This is the coverage skeleton; the depth of each item comes from the owning skill.
+Coverage skeleton; the depth of each item comes from the owning skill.
 
-1. **Crawlability and indexation** — reachability without JavaScript, robots directives, sitemap coverage against the real URL set, canonical correctness, duplicate and near-duplicate variants, redirect chains and loops, soft 404s, orphan pages, index bloat.
-2. **Technical foundations** — status codes, HTTPS and host consistency, mobile rendering, Core Web Vitals and page weight, URL patterns, internationalization (`hreflang` reciprocity, locale canonicals).
-3. **On-page elements** — title and meta description uniqueness against query intent, heading structure, image alt text and formats, internal linking and anchor text, breadcrumbs, social cards.
-4. **Structured data** — validate by `skill://seo-audit`'s schema-detection rule; record type coverage against the site's page types.
-5. **Content quality** — depth against intent, thin and duplicated content, E-E-A-T signals, freshness, cannibalization between pages chasing one intent, machine-written patterns.
-6. **Authority signals** — internal link distribution toward priority pages, broken outbound links, and whatever off-site evidence the user can supply.
-7. **AI answer-engine visibility** — run the recorded prompt set through `skill://ai-seo`'s visibility measurement; platform, prompt, and date land in the ledger.
-8. **Metrics baseline** — the analytics, Search Console, or log access the project actually has, recorded so remediation can be measured later. Absent access is an `unproven` entry naming the credential that would settle it.
+1. **Crawlability and indexation** — reachability without JavaScript, robots directives, sitemap coverage, canonicals, duplicates, redirect chains, soft 404s, orphans, index bloat.
+2. **Technical foundations** — status codes, HTTPS and host consistency, mobile rendering, Core Web Vitals, URL patterns, internationalization.
+3. **On-page elements** — titles and descriptions against intent, headings, image alt text, internal links and anchors, breadcrumbs, social cards.
+4. **Structured data** — per `skill://seo-audit`'s schema-detection rule; type coverage against page types.
+5. **Content quality** — depth against intent, thin or duplicate content, E-E-A-T, freshness, cannibalization.
+6. **Authority signals** — internal link distribution, broken outbound links, off-site evidence the user supplies.
+7. **AI answer-engine visibility** — the recorded prompt set through `skill://ai-seo`'s visibility measurement.
+8. **Metrics baseline** — the analytics or log access the project has, so remediation is measurable later; absent access is `unproven`, naming what would settle it.
 
 Each probe ends as `confirmed defect`, `missing coverage`, `intentional`, `unproven` (with the precondition that would settle it), or `not applicable` (with the reason).
 
 ## Proof standards
 
-- A crawlability finding is proved by what a plain HTTP client receives: status, headers, body, no script execution.
-- A rendered-content or structured-data finding is proved from the browser DOM, never from view-source or a partial fetch.
-- An AI-visibility finding is an observation dated to the day it was taken, with the platform, the exact prompt, and the quoted answer or its absence. Answers move between model releases; one is never a standing rank.
-- A negative result still gets recorded: URL, response, and why the class passes.
+- Crawlability: what a plain HTTP client receives — status, headers, body, no script execution.
+- Rendered content or structured data: the browser DOM, never view-source or a partial fetch.
+- AI visibility: a dated observation per platform, with the exact prompt and the quoted answer or its absence — never a standing rank.
+- Negatives are recorded too: URL, response, and why the class passes.
 
 ## Ledger
 
-`docs/seo-audit-findings.md`, stable IDs `SEO-001`, `SEO-002`, …. One row per finding: URL class, URL, status, probe, instrument, observation, classification, impact, remediation, re-probe result. AI-visibility rows carry platform, prompt, and date.
+`docs/seo-audit-findings.md`, IDs `SEO-001`…: URL class, URL, status, probe, instrument, observation, classification, impact, remediation, re-probe. AI-visibility rows carry platform, prompt, and date.
 
 ## Repair rules
 
-- Name the URL class and the expected effect before touching markup; a change that lands without a re-probe is unfinished.
-- Re-probe the same class with the same instrument and record the before/after.
-- Keep redirects one hop; a fix that lengthens a chain is not a fix.
-- Keep every legitimate `noindex`, authentication wall, and crawl rule in place; visibility is earned inside those boundaries, not by relaxing them.
+- Name the URL class and expected effect before touching markup; re-probe the same class with the same instrument and record the before/after.
+- Keep redirects one hop.
+- Keep every legitimate `noindex`, authentication wall, and crawl rule in place; visibility is earned inside those boundaries.
 
 ## SEO completion criteria
 
 The SEO branch is complete only when:
 
-- Every URL class carries a crawlability and indexation verdict, or an explicit out-of-scope reason.
+- Every URL class carries a crawlability and indexation verdict, or an out-of-scope reason.
 - Every probe has a classification with its URL, instrument, and observation.
 - Every confirmed defect has a fix, a re-probe, and the recorded before/after.
-- AI-visibility results are recorded per platform and prompt with the date taken.
-- Unproven entries name the access, credential, or environment that would settle them.
+- AI-visibility results are recorded per platform and prompt with the date taken, and unproven entries name what would settle them.
 - `docs/audit-progress.md` and `docs/seo-audit-findings.md` contain the complete dated run.
 
 ---
