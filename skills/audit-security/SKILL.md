@@ -41,7 +41,7 @@ Find defects an attacker could actually use: authentication, authorization and t
 
 - A finding is `confirmed` only with a reproducible probe: the exact request/action, the observed result, the expected result, and the code path that permits it. Keep the probe in the ledger in a form a reviewer can re-run against a local instance.
 
-Protocol for the cut proof-status items is stated in `audit-loop`.
+Proof-status labels, unproven handling and host-side confirmation: the shared protocol in `audit-loop`.
 
 ## Repair rules
 

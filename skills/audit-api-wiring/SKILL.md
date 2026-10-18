@@ -1,6 +1,6 @@
 ---
 name: audit-api-wiring
-description: Audit frontend/backend wiring end to end: routes, components, API contracts, permissions, persistence, state transitions, privacy, and browser proof. Use when the user wants a complete API wiring audit of a project's routes and data paths — tracing every read and write, classifying gaps, and repairing confirmed defects with focused regressions — or when `audit-loop` selects this branch.
+description: "Audit frontend/backend wiring end to end: routes, components, API contracts, permissions, persistence, state transitions, privacy, and browser proof. Use when the user wants a complete API wiring audit of a project's routes and data paths — tracing every read and write, classifying gaps, and repairing confirmed defects with focused regressions — or when `audit-loop` selects this branch."
 ---
 
 # API wiring audit
@@ -34,7 +34,7 @@ Discovery must be completed across all mapped units before repairs are narrowed 
 
 - Re-run affected unit, feature, build, type/lint, translation, accessibility, responsive, and browser checks.
 
-Protocol for the cut items is stated in `audit-loop`.
+Fix modes, regression rules and unproven handling: the shared protocol in `audit-loop`.
 
 ## API audit completion criteria
 
