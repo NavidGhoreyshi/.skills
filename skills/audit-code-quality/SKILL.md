@@ -7,6 +7,8 @@ description: Measure and reduce maintainability debt — duplication, dead code,
 
 Use this branch when the user selects **Code quality audit**.
 
+> Shared protocol — fix-mode repair contract, finding-ledger convention, order-of-effects assertion, repo-not-host fix statuses (`verified live` / `fixed, awaiting live verification`), and unproven/host-side confirmation — is stated once in `audit-loop`.
+
 ## Goal
 
 Measure and reduce maintainability debt across the codebase **without changing observable behavior**. This branch is not a style debate: every finding is backed by a measurement or a concrete future-failure scenario, and every repair is proven behavior-preserving.

@@ -5,7 +5,9 @@ description: Audit crawlability, indexation, technical foundations, on-page elem
 
 # SEO audit
 
-Use this branch when the user selects **SEO audit**. In a mixed run it executes fifth — after `audit-security`, before `audit-code-quality` — because its remediations change served markup and copy, and code quality freezes behavior.
+Use this branch when the user selects **SEO audit**. In a mixed run it executes seventh — after `audit-security`, before `audit-code-quality` — because its remediations change served markup and copy, and code quality freezes behavior.
+
+> Shared protocol — fix-mode repair contract, finding-ledger convention, order-of-effects assertion, repo-not-host fix statuses (`verified live` / `fixed, awaiting live verification`), and unproven/host-side confirmation — is stated once in `audit-loop`.
 
 ## Goal
 

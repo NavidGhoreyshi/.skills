@@ -5,9 +5,11 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 ## Skills
 
 | Skill | Purpose |
-| `audit-loop` | Route a project-wide audit across seven branch skills: ask the setup questions (audit type, fix mode, live deployment authority), invoke one skill per selected branch in run order, and merge the aggregate report. |
-| `audit-live-flow` | Drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks. |
-| `audit-onboarding` | Drive the deployed new-user journey to first value, measuring time-to-value, drop-off, and trust signals. |
+| `audit-loop` | Route a project-wide audit across nine branch skills: ask the setup questions (audit type, fix mode, live deployment authority), invoke one skill per selected branch in run order, and merge the aggregate report. |
+| `audit-live-flow` | Drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks — journey pass for every feature, onboarding pass for the new-user path to first value. |
+| `audit-deployment` | Prove the serving artifact matches the repo and the project can be deployed, reverted, and restored. |
+| `audit-secrets` | Audit every credential across code, stores, logs, and hosts with placement, echo, liveness, and separation probes. |
+| `audit-authorization` | Prove who may do what to which resource with paired entitled and unentitled probes. |
 | `audit-api-wiring` | Trace frontend/backend contracts, permissions, persistence, state transitions, privacy, and browser proof. |
 | `audit-security` | Hunt exploitable authentication, authorization, tenancy, input, secret, and data-exposure defects with a probe per claim. |
 | `audit-seo` | Audit crawlability, on-page elements, structured data, authority, and AI answer-engine visibility. |
@@ -35,7 +37,9 @@ Or install them individually:
 
 npx skills add NavidGhoreyshi/.skills --skill audit-loop --yes
 npx skills add NavidGhoreyshi/.skills --skill audit-live-flow --yes
-npx skills add NavidGhoreyshi/.skills --skill audit-onboarding --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-deployment --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-secrets --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-authorization --yes
 npx skills add NavidGhoreyshi/.skills --skill audit-api-wiring --yes
 npx skills add NavidGhoreyshi/.skills --skill audit-security --yes
 npx skills add NavidGhoreyshi/.skills --skill audit-seo --yes
@@ -64,8 +68,10 @@ npx skills add NavidGhoreyshi/.skills --list
 
 **Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase driven by its branch skill):
 
-- **Live user flow** (`audit-live-flow`, recommended) — drive the *deployed* app through every user-facing feature end to end, on the live domain, with browser control **and** shell access to the host so a browser symptom can be confirmed or refuted server-side. Runs in reviewed chunks.
-- **Onboarding** (`audit-onboarding`) — drive the deployed new-user journey to first value, measuring time-to-value, drop-off, cognitive load, trust signals, and the promise-to-delivery gap. Runs in reviewed chunks.
+- **Live user flow** (`audit-live-flow`, recommended) — drive the *deployed* app through every user-facing feature end to end, on the live domain, with browser control **and** shell access to the host so a browser symptom can be confirmed or refuted server-side. Runs in reviewed chunks — journey pass for the full surface, onboarding pass for the new-user journey to first value (time-to-value, drop-off, cognitive load, trust signals, promise-to-delivery gap).
+- **Deployment** (`audit-deployment`) — prove the serving artifact matches the repo: artifact, schema, env, and flag parity per environment, plus rollback and restore-into-scratch evidence naming the next operator command.
+- **Secrets** (`audit-secrets`) — audit every credential across code, stores, logs, and hosts: placement, echo surface, liveness and rotation, and separation across environments, with blast radius and the exact operator rotation step per finding.
+- **Authorization** (`audit-authorization`) — prove who may do what to which resource with paired entitled and unentitled probes per resource path, refusing without a passing twin never counting as proof.
 - **API wiring** (`audit-api-wiring`) — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
 - **Security** (`audit-security`) — probe every trust boundary: authentication, authorization and tenancy isolation, input handling, secret management, data exposure, abuse resistance, and configuration. Each finding needs a reproducible non-destructive probe; a negative result needs the recorded attempt too.
 - **SEO** (`audit-seo`) — audit crawlability, indexation, technical and on-page elements, structured data, authority, and AI answer-engine visibility.
@@ -76,12 +82,13 @@ npx skills add NavidGhoreyshi/.skills --list
 
 - **Manual fix mode** (recommended) — audit the whole project, then present the findings and ask before modifying application code.
 - **Automatic fix mode** — audit the whole project, then autonomously fix every confirmed in-scope defect, add regression coverage, verify the repairs, and report the complete ledger at the end.
+- **Report-only mode** — record findings and evidence and change nothing, installing nothing; the ledger, proof standards, and completion criteria still apply, only repairs stop.
 
-Discovery and proof are identical in both fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
+Discovery and proof are identical in all three fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
 
 **Automatic fix mode is still chunked in a live audit.** The run always stops at a chunk boundary for your go sign, because a whole-product live sweep will not fit in one coherent context window. Automatic means "decide and fix without asking per finding" — not "run unattended until the end".
 
-**Question 3 — live deployment authority** (live flow and onboarding audits) asks whether the run may push and deploy to verify fixes, defaulting to *no — report only*. It is asked on every run and every chunk boundary, never cached: an unattended model deploying to production is a decision only the user can make, and the right answer changes as an environment gains real users.
+**Question 3 — live deployment authority** (live flow audit, both passes) asks whether the run may push and deploy to verify fixes, defaulting to *no — report only*. It is asked on every run and every chunk boundary, never cached: an unattended model deploying to production is a decision only the user can make, and the right answer changes as an environment gains real users.
 
 #### Router driving the live-flow branch, in practice
 
@@ -174,13 +181,15 @@ Each finding gets the same treatment — introduced, a fix proposed, a decision,
 
 One line per branch skill the router dispatches to, in run order:
 
-- `audit-live-flow` — drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks.
-- `audit-onboarding` — drive the deployed new-user journey to first value, measuring time, steps, hesitations, errors, trust signals, and drop-off.
+- `audit-live-flow` — drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks — journey pass for every feature, onboarding pass for the new-user path to first value.
+- `audit-deployment` — prove the serving artifact matches the repo and recovery works, naming the next operator command.
+- `audit-secrets` — prove every credential is known, minimally placed, unexposed, and separated across environments.
+- `audit-authorization` — prove who may do what to which resource with paired entitled and unentitled probes.
 - `audit-api-wiring` — trace every control and datum through contract, auth, validation, persistence, and rendered state, with browser proof.
 - `audit-security` — probe every trust boundary with a reproducible non-destructive probe per claim.
 - `audit-seo` — audit crawlability, on-page elements, structured data, authority, and AI answer-engine visibility.
 - `audit-code-quality` — measure maintainability debt on a baseline, then reduce it without changing behavior.
-- `audit-missed-features` — propose only interactions the existing data, routes, and permissions already support; the user classifies each.
+- `audit-missed-features` — propose only interactions the existing data, routes, and permissions already support, including competitor feature gaps; the user classifies each.
 
 ### tree-mapper / section-auditor
 

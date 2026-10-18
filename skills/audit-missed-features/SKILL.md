@@ -1,11 +1,13 @@
 ---
 name: audit-missed-features
-description: Walk the product page by page and component by component, propose missing interactions grounded in existing capabilities, and record the user's decision on each. Use when the user wants a missed-features assessment, feature-gap review, or "what is missing here" pass — or when `audit-loop` selects this branch.
+description: Walk the product page by page and component by component, propose missing interactions grounded in existing capabilities, and record the user's decision on each. Use when the user wants a missed-features assessment, feature-gap review, or "what is missing here" pass, or a competitor feature-gap comparison — or when `audit-loop` selects this branch.
 ---
 
 # Missed-features assessment
 
 Use this branch when the user selects **Missed-features assessment**.
+
+> Shared protocol — fix-mode repair contract, finding-ledger convention, order-of-effects assertion, repo-not-host fix statuses (`verified live` / `fixed, awaiting live verification`), and unproven/host-side confirmation — is stated once in `audit-loop`.
 
 ## Goal
 
