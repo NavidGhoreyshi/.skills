@@ -1,6 +1,6 @@
 # .skills — Agent Skills for Agentic Workflows
 
-A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform. `roadmap-composition` goes one level up: it plans the work — composing the multi-session `ROADMAP.md` an [ompo](https://github.com/NavidGhoreyshi/ompo) orchestrator executes slice by slice.
+A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform. `roadmap-composition` goes one level up: it plans the work — composing the multi-session `ROADMAP.md` an [ompo](https://github.com/NavidGhoreyshi/ompo) orchestrator executes slice by slice. `checkpoint` covers the other axis: keeping a long-running piece of work resumable across a shutdown.
 
 ## Skills
 
@@ -13,6 +13,7 @@ A collection of agent skills for running deep, evidence-backed audits of full-st
 | `deep-research` | Research anything on the internet with platform breadth (agent-reach) and extraction depth (scrapling, patchright-enhanced fallback). |
 | `roadmap-composition` | Compose or revise an ompo `ROADMAP.md` — the multi-session plan an ompo orchestrator executes slice by slice. Splits work by file ownership and context budget, carries interfaces into slice bodies, and ships an audit script that flags overlapping, unbounded, or sweep-shaped slices. |
 | `www` | Turn a session's mistakes, near misses and miscommunication into durable rules. Two modes — retro on the current conversation, or a corpus audit sweeping past transcripts — then routes each lesson to the strongest mechanism that prevents it recurring: a linter rule, a skill, a global or project `AGENTS.md` line, or nothing at all. Ships a zero-dependency scanner that ranks candidate turns across the omp and opencode transcript stores. |
+| `checkpoint` | Save a session to a durable checkpoint and reload it later — the plan, locked decisions, in-flight jobs and the next action. Save freezes the tree, snapshots it, writes `STATE.md` and flushes it to disk; resume ages that file against the tree, corrects it, then continues with a fresh agent briefed on the partial state. Built for a machine going down mid-work: the in-flight job's brief is quoted verbatim, because the brief dies with the session that wrote it. |
 
 ## Install
 
@@ -34,6 +35,7 @@ npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
 npx skills add NavidGhoreyshi/.skills --skill deep-research --yes
 npx skills add NavidGhoreyshi/.skills --skill roadmap-composition --yes
 npx skills add NavidGhoreyshi/.skills --skill www --yes
+npx skills add NavidGhoreyshi/.skills --skill checkpoint --yes
 ```
 
 See what's available without installing anything:
@@ -195,6 +197,16 @@ Turn what went wrong into something that cannot happen again — an agent rules 
 - **Records rejections too**, so the same non-lesson stops being re-proposed next time.
 
 Depends on `python3` and nothing else. Reads the default omp and opencode stores under `~`; both paths are overridable.
+
+### checkpoint
+
+Keep a session's state alive across a shutdown, and pick it up in a fresh session.
+
+- **One directory per session** under `~/.agents/state/` — `STATE.md` beside `git log`, `status` and `diff` snapshots — never the OS temp dir, which a reboot clears, and never the repo, where it becomes `git status` noise.
+- **Refresh on every settled decision, and always *before* dispatching a long job.** Shutdowns are not announced, so a checkpoint written at the end is missing exactly when it is needed; `Updated:` heads the file and it is flushed to disk, so a stale one cannot pass for the current one.
+- **Quotes the in-flight job's brief verbatim** — the brief dies with the session that wrote it, which makes it the one thing that cannot be reconstructed afterwards.
+- **Resume ages the file against the tree.** An in-flight job is unknown until its own record and its files are read; the file is corrected first, then a fresh agent is briefed on the partial state rather than on the original brief.
+- No scripts, no dependencies — markdown files and the standard tools.
 
 
 ## How it works
