@@ -1,12 +1,18 @@
 # .skills — Agent Skills for Agentic Workflows
 
-A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform. `roadmap-composition` goes one level up: it plans the work — composing the multi-session `ROADMAP.md` an [ompo](https://github.com/NavidGhoreyshi/ompo) orchestrator executes slice by slice. `checkpoint` covers the other axis: keeping a long-running piece of work resumable across a shutdown.
+A collection of agent skills for running deep, evidence-backed audits of full-stack web applications (frontend + backend wiring), originally developed while auditing a Django REST Framework + Next.js reservation platform. `audit-loop` is the router parent: it asks the setup questions and routes each selected audit to its own branch skill — each of the seven audits (live flow, onboarding, API wiring, security, SEO, code quality, missed features) is its own skill that owns its branch body. `roadmap-composition` goes one level up: it plans the work — composing the multi-session `ROADMAP.md` an [ompo](https://github.com/NavidGhoreyshi/ompo) orchestrator executes slice by slice. `checkpoint` covers the other axis: keeping a long-running piece of work resumable across a shutdown.
 
 ## Skills
 
 | Skill | Purpose |
-|---|---|
-| `audit-loop` | Run a complete project-wide audit in one pass. Five audit types: live user flow (drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks), API wiring (frontend/backend contracts, permissions, persistence, state transitions, privacy, browser proof), code quality (maintainability debt, measured, behavior-preserving), security (authentication, authorization, tenancy isolation, input handling, secrets, data exposure), and a user-guided missed-features assessment. Builds a finding ledger before repairing. |
+| `audit-loop` | Route a project-wide audit across seven branch skills: ask the setup questions (audit type, fix mode, live deployment authority), invoke one skill per selected branch in run order, and merge the aggregate report. |
+| `audit-live-flow` | Drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks. |
+| `audit-onboarding` | Drive the deployed new-user journey to first value, measuring time-to-value, drop-off, and trust signals. |
+| `audit-api-wiring` | Trace frontend/backend contracts, permissions, persistence, state transitions, privacy, and browser proof. |
+| `audit-security` | Hunt exploitable authentication, authorization, tenancy, input, secret, and data-exposure defects with a probe per claim. |
+| `audit-seo` | Audit crawlability, on-page elements, structured data, authority, and AI answer-engine visibility. |
+| `audit-code-quality` | Measure and reduce maintainability debt without changing observable behavior. |
+| `audit-missed-features` | Propose missing interactions grounded in existing capabilities; the user decides each one. |
 | `tree-mapper` | Build or refresh `docs/ui-tree.md` — the frontend/backend integration tree and per-unit wiring inventory that audits depend on. |
 | `section-auditor` | Audit and repair one frontend page or SPA view with its backend integration, proving every control and every datum rather than just that the page renders. |
 | `context-pack` | Package the source files relevant to a prompt into a portable context pack (XML + manifest) for another LLM, without solving the request. |
@@ -27,8 +33,14 @@ npx skills add NavidGhoreyshi/.skills --all
 
 Or install them individually:
 
-```bash
 npx skills add NavidGhoreyshi/.skills --skill audit-loop --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-live-flow --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-onboarding --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-api-wiring --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-security --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-seo --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-code-quality --yes
+npx skills add NavidGhoreyshi/.skills --skill audit-missed-features --yes
 npx skills add NavidGhoreyshi/.skills --skill tree-mapper --yes
 npx skills add NavidGhoreyshi/.skills --skill section-auditor --yes
 npx skills add NavidGhoreyshi/.skills --skill context-pack --yes
@@ -48,15 +60,17 @@ npx skills add NavidGhoreyshi/.skills --list
 
 ### audit-loop
 
-At the very start, `audit-loop` asks two setup questions — three when a live user flow audit is selected.
+`audit-loop` is the router: it asks three setup questions, then invokes one branch skill per selected audit in run order and merges the aggregate report.
 
-**Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase):
+**Question 1 — audit type** (several may be selected; they run in this order, each as a separate labeled phase driven by its branch skill):
 
-- **Live user flow audit** (recommended) — drive the *deployed* app through every user-facing feature end to end, on the live domain, with browser control **and** shell access to the host so a browser symptom can be confirmed or refuted server-side. Runs in reviewed chunks.
-- **API wiring audit** — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
-- **Security audit** — probe every trust boundary: authentication, authorization and tenancy isolation, input handling, secret management, data exposure, abuse resistance, and configuration. Each finding needs a reproducible non-destructive probe; a negative result needs the recorded attempt too.
-- **Code quality audit** — measure maintainability debt (duplication, dead code, complexity, unsafe type escapes, swallowed errors, N+1 access, test quality) on a recorded baseline, then reduce it without changing observable behavior.
-- **Missed-features assessment** — walk pages and components one by one, propose only interactions the product's existing data, routes, and permissions already support, and let you classify each as needed / intentionally left out / defer / not applicable.
+- **Live user flow** (`audit-live-flow`, recommended) — drive the *deployed* app through every user-facing feature end to end, on the live domain, with browser control **and** shell access to the host so a browser symptom can be confirmed or refuted server-side. Runs in reviewed chunks.
+- **Onboarding** (`audit-onboarding`) — drive the deployed new-user journey to first value, measuring time-to-value, drop-off, cognitive load, trust signals, and the promise-to-delivery gap. Runs in reviewed chunks.
+- **API wiring** (`audit-api-wiring`) — trace every control and datum through frontend → API → auth/role → validation → persistence → response → rendered state, prove reads and writes end to end, and exercise loading/empty/error/unauthorized/privacy/pagination cells.
+- **Security** (`audit-security`) — probe every trust boundary: authentication, authorization and tenancy isolation, input handling, secret management, data exposure, abuse resistance, and configuration. Each finding needs a reproducible non-destructive probe; a negative result needs the recorded attempt too.
+- **SEO** (`audit-seo`) — audit crawlability, indexation, technical and on-page elements, structured data, authority, and AI answer-engine visibility.
+- **Code quality** (`audit-code-quality`) — measure maintainability debt (duplication, dead code, complexity, unsafe type escapes, swallowed errors, N+1 access, test quality) on a recorded baseline, then reduce it without changing observable behavior.
+- **Missed features** (`audit-missed-features`) — walk pages and components one by one, propose only interactions the product's existing data, routes, and permissions already support, and let you classify each as needed / intentionally left out / defer / not applicable.
 
 **Question 2 — fix mode**:
 
@@ -65,11 +79,11 @@ At the very start, `audit-loop` asks two setup questions — three when a live u
 
 Discovery and proof are identical in both fix modes; only *who decides what gets fixed* changes. Neither mode permits silently implementing a missed-feature proposal that was not classified as needed.
 
-**Automatic fix mode is still chunked in a live user flow audit.** The run always stops at a chunk boundary for your go sign, because a whole-product live sweep will not fit in one coherent context window. Automatic means "decide and fix without asking per finding" — not "run unattended until the end".
+**Automatic fix mode is still chunked in a live audit.** The run always stops at a chunk boundary for your go sign, because a whole-product live sweep will not fit in one coherent context window. Automatic means "decide and fix without asking per finding" — not "run unattended until the end".
 
-**Question 3 — live deployment authority** (live user flow audits only) asks whether the run may push and deploy to verify fixes, defaulting to *no — report only*. It is asked on every run and every chunk boundary, never cached: an unattended model deploying to production is a decision only the user can make, and the right answer changes as an environment gains real users.
+**Question 3 — live deployment authority** (live flow and onboarding audits) asks whether the run may push and deploy to verify fixes, defaulting to *no — report only*. It is asked on every run and every chunk boundary, never cached: an unattended model deploying to production is a decision only the user can make, and the right answer changes as an environment gains real users.
 
-#### Live user flow audit, in practice
+#### Router driving the live-flow branch, in practice
 
 ```text
 > What kind of audit should this run perform?
@@ -104,7 +118,7 @@ Go sign for chunk 2?
 
 Everything needed to resume lives in `docs/live-flow-audit.md`, so the next chunk can run in a **fresh session** with no conversational memory — the state file names the next chunk and its first flow.
 
-#### Manual fix mode, in practice
+#### Router driving the wiring branch in manual fix mode, in practice
 
 ```text
 > What kind of audit should this run perform?
@@ -155,6 +169,18 @@ How would you like to solve this?
 ```
 
 Each finding gets the same treatment — introduced, a fix proposed, a decision, and (if approved) a verified fix — until every row in the summary table has a terminal status. The final report includes the full ledger: what was fixed, skipped, deferred, and left unproven.
+
+### the audit branches
+
+One line per branch skill the router dispatches to, in run order:
+
+- `audit-live-flow` — drive the deployed app end to end on the live domain with browser control plus host access, in reviewed chunks.
+- `audit-onboarding` — drive the deployed new-user journey to first value, measuring time, steps, hesitations, errors, trust signals, and drop-off.
+- `audit-api-wiring` — trace every control and datum through contract, auth, validation, persistence, and rendered state, with browser proof.
+- `audit-security` — probe every trust boundary with a reproducible non-destructive probe per claim.
+- `audit-seo` — audit crawlability, on-page elements, structured data, authority, and AI answer-engine visibility.
+- `audit-code-quality` — measure maintainability debt on a baseline, then reduce it without changing behavior.
+- `audit-missed-features` — propose only interactions the existing data, routes, and permissions already support; the user classifies each.
 
 ### tree-mapper / section-auditor
 
